@@ -32,30 +32,19 @@ It does **not** perform intrusive scans.
 
 ---
 
-## Philosophy
-
-- Read-only by default
-- No automatic remediation
-- Minimal dependencies
-- Transparent checks
-- Deterministic output
-- Clear reporting without alarmism
-- JSON output for automation
-
-secfetch is an inspection tool, not a security product.
-
----
-
 ## Disclaimer!
 At this moment, this is just an attempt of a fetch setup. However, the plan is to make this a constantly evolving tool.
 
 ---
 
-## Roadmap
-#### v0.1
+## Installation
+A public installation is not available at this point.
 
-- Kernel version
-- ASLR status
+---
+
+## Roadmap
+#### v0.1.1
+
 - LSM detection
 - Secure Boot check
 - Firewall detection
