@@ -1,75 +1,227 @@
-# secfetch
+```
+                   ____     __       __  
+   ________  _____/ __/__  / /______/ /_ 
+  / ___/ _ \/ ___/ /_/ _ \/ __/ ___/ __ \
+ (__  )  __/ /__/ __/  __/ /_/ /__/ / / /
+/____/\___/\___/_/  \___/\__/\___/_/ /_/ 
+```
 
-secfetch is a security-oriented system inspection CLI for Linux.
+**secfetch** is a lightweight **Linux security inspection CLI**.
 
-Lightweight security state inspector for Linux — bridging the gap between pretty fetch tools and heavy-duty audit frameworks.
+It provides a quick overview of security‑relevant system configuration — similar to fetch tools like `neofetch` or `fastfetch`, but focused on **security posture instead of aesthetics**.
 
-Unlike traditional "fetch" tools that focus on aesthetic system information,
-secfetch inspects security-relevant configuration and exposes potential
-hardening gaps in a clear and non-invasive way.
+secfetch inspects kernel protections, system hardening settings, and network exposure to give a fast overview of the current system state.
 
 ---
 
-## Purpose
+# Overview
 
-secfetch provides a quick, read-only overview of a system’s security posture.
+secfetch performs **read‑only security checks** and prints the results in a compact overview.
 
 It focuses on:
 
-- Kernel hardening state
-- Attack surface indicators
-- Privilege configuration
-- Namespaces and sandboxing status
-- Linux Security Modules (AppArmor / SELinux)
+- Kernel security features
+- Kernel hardening parameters
+- Linux Security Modules
 - Secure Boot status
 - Firewall state
-- Selected security-relevant sysctl parameters
-- VPN connection status (active / last known connection)
+- Open network ports
+- IPv6 configuration
 
-secfetch does **not** modify system configuration.
-It does **not** auto-harden the system.
-It does **not** perform intrusive scans.
+The tool is intentionally **lightweight, dependency‑free, and non‑intrusive**.
 
----
-
-## Disclaimer!
-At this moment, this is just an attempt of a fetch setup. However, the plan is to make this a constantly evolving tool.
+secfetch **does not modify system configuration** and **does not perform vulnerability scans**.
 
 ---
 
-## Installation
-A public installation is not available at this point.
+# Example
+
+```
+$ secfetch
+
+System
+------
+Kernel               6.8.9
+Secure Boot          Enabled
+
+Kernel Security
+---------------
+ASLR                 Full
+Lockdown             integrity
+LSM                  apparmor, bpf
+
+Kernel Hardening
+----------------
+kptr_restrict        Fully Restricted
+dmesg_restrict       Enabled
+ptrace_scope         Restricted
+modules_disabled     Disabled
+unprivileged_bpf     Disabled
+
+Network
+-------
+Firewall             Active
+Open Ports           22, 631
+IPv6                 Enabled
+```
 
 ---
 
-## Roadmap
-#### v0.1.1
+# Installation
 
-- LSM detection
-- Secure Boot check
-- Firewall detection
+## One‑liner installation
 
-## Non-Goals
+```
+git clone https://github.com/YOURNAME/secfetch.git && cd secfetch && pip install .
+```
 
-- No automatic system hardening
-- No vulnerability scanning
-- No network probing
-- No root-required design (where avoidable)
+After installation:
+
+```
+secfetch
+```
 
 ---
 
-## Contributing
+## Manual installation
+
+Clone the repository:
+
+```
+git clone https://github.com/YOURNAME/secfetch.git
+cd secfetch
+```
+
+Install the package:
+
+```
+pip install .
+```
+
+You can now run:
+
+```
+secfetch
+```
+
+---
+
+# Usage
+
+Run the default security overview:
+
+```
+secfetch
+```
+
+Show the program version:
+
+```
+secfetch --version
+```
+
+Display an explanation for a specific check:
+
+```
+secfetch help aslr
+```
+
+Example:
+
+```
+secfetch help ptrace_scope
+```
+
+---
+
+# Security Checks
+
+secfetch currently inspects:
+
+### System
+
+- Kernel version
+- Secure Boot status
+
+### Kernel Security
+
+- ASLR
+- Kernel Lockdown
+- Linux Security Modules (LSM)
+
+### Kernel Hardening
+
+- kptr_restrict
+- dmesg_restrict
+- ptrace_scope
+- modules_disabled
+- unprivileged_bpf_disabled
+
+### Network
+
+- Firewall state
+- Open ports
+- IPv6 status
+
+---
+
+# Design Goals
+
+- **Read‑only** inspection
+- **No root required** where possible
+- **Minimal dependencies**
+- **Fast execution**
+- **Deterministic checks**
+
+secfetch is designed to provide a **quick security overview**, not a full security audit.
+
+---
+
+# Non‑Goals
+
+secfetch intentionally does **not**:
+
+- perform vulnerability scanning
+- modify system configuration
+- run intrusive network scans
+- replace security auditing tools
+
+For deeper auditing consider tools such as:
+
+- `lynis`
+- `checksec`
+- distribution security benchmarks
+
+---
+
+# Roadmap
+
+Planned improvements include:
+
+- additional kernel hardening checks
+- improved firewall detection
+- optional deep scan mode
+- extended network inspection
+- improved CLI features
+
+---
+
+# Contributing
+
 Contributions are welcome.
 
-Please:
-- Keep checks deterministic
-- Avoid alarmist language
-- Document detection logic clearly
-- Prefer explicit paths over shell calls
-- Avoid unnecessary dependencies
+Please follow these guidelines:
+
+- keep checks deterministic
+- avoid unnecessary dependencies
+- document detection logic clearly
+- prefer reading from `/proc` and `/sys` where possible
+- avoid intrusive scanning techniques
 
 ---
 
 # License
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
-See the LICENSE file for details.
+
+This project is licensed under the **GNU General Public License v3.0 (GPL‑3.0)**.
+
+See the [LICENSE](LICENSE) file for details.
