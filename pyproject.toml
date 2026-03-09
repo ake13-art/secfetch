@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secfetch"
+version = "1.1.0"
+description = "Lightweight Linux security inspection tool"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "GPL-3.0" }
+
+authors = [
+  { name = "ake13-art" }
+]
+
+keywords = ["linux", "security", "hardening", "audit"]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: GPL-3.0 License",
+  "Operating System :: POSIX :: Linux",
+  "Environment :: Console"
+]
+
+[project.scripts]
+secfetch = "secfetch.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
