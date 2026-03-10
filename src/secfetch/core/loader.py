@@ -4,11 +4,11 @@ import secfetch.checks
 
 
 def load_checks():
-
+    # walk all submodules in secfetch.checks and import them
     for module in pkgutil.walk_packages(
         secfetch.checks.__path__, secfetch.checks.__name__ + "."
     ):
         try:
             importlib.import_module(module.name)
         except Exception as e:
-            print(f"  [!] Fehler beim Laden von {module.name}: {e}")
+            print(f"[!] Failed to load {module.name}: {e}")

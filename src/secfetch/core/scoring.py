@@ -1,46 +1,30 @@
-def calculate_score(results):
-
-    weights = {
-        "high": 30,
-        "medium": 20,
-        "low": 10,
-        "info": 0,
-    }
-
-    total = 0
-    score = 0
+def calculate_score(results: list[dict]) -> tuple[int, dict]:
+    weights = {"high": 30, "medium": 20, "low": 10, "info": 0}
+    total, score = 0, 0
     categories = {}
 
     for r in results:
-        risk = r["risk"]
-        weight = weights.get(risk, 0)
-        status = r["status"]
+        w = weights.get(r["risk"], 0)
+        total += w
 
-        total += weight
-
-        # ok = volle Punkte, warn = halbe Punkte, bad/info = keine Punkte
-        if status == "ok":
-            score += weight
-        elif status == "warn":
-            score += weight // 2
+        # ok = full points, warn = half, bad/info = none
+        if r["status"] == "ok":
+            score += w
+        elif r["status"] == "warn":
+            score += w // 2
 
         cat = r["category"]
-
         if cat not in categories:
             categories[cat] = {"score": 0, "total": 0}
+        categories[cat]["total"] += w
+        if r["status"] == "ok":
+            categories[cat]["score"] += w
+        elif r["status"] == "warn":
+            categories[cat]["score"] += w // 2
 
-        categories[cat]["total"] += weight
-
-        if status == "ok":
-            categories[cat]["score"] += weight
-        elif status == "warn":
-            categories[cat]["score"] += weight // 2
-
-    final_score = int((score / total) * 100) if total else 0
-
-    category_scores = {
+    final = int((score / total) * 100) if total else 0
+    cat_scores = {
         k: int((v["score"] / v["total"]) * 100) if v["total"] else 0
         for k, v in categories.items()
     }
-
-    return final_score, category_scores
+    return final, cat_scores

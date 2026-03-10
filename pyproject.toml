@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secfetch"
-version = "1.1.0"
+version = "1.2.0"
 description = "Lightweight Linux security inspection tool"
 readme = "README.md"
 requires-python = ">=3.8"
