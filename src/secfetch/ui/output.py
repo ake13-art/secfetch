@@ -43,7 +43,6 @@ CATEGORY_TITLES = {
 
 # color codes
 RED, YELLOW, GREEN, CYAN, RESET = "\033[31m", "\033[33m", "\033[32m", "\033[36m", "\033[0m"
-
 STATUS_COLORS = {"ok": GREEN, "warn": YELLOW, "bad": RED, "info": CYAN}
 
 
@@ -82,7 +81,7 @@ def print_results(results: list[dict]) -> None:
         for r in grouped[cat]:
             icon = colorize(r["status"], ICONS.get(r["status"], "•"))
             name = r["name"].ljust(22)
-            val  = colorize(r["status"], r["value"])
+            val  = r["value"] if "\033[" in r["value"] else colorize(r["status"], r["value"])  # [CHANGED]
             print(f"    {icon}  {name}  {val}")
         print()
 

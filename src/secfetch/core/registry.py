@@ -1,3 +1,4 @@
+# Central registry for all security checks
 _checks = []
 
 
