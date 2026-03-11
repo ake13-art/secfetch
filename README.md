@@ -1,4 +1,4 @@
-# secfetch version 1.2
+# secfetch version 1.3
 
 ```
                    ____     __       __
@@ -41,14 +41,17 @@
 | `modules_disabled`     | Kernel Hardening | Low    | Kernel module loading after boot   |
 | `unprivileged_bpf`     | Kernel Hardening | Medium | Unprivileged BPF program loading   |
 | `firewall`             | Network          | Medium | UFW firewall status                |
+| `firewall rules`       | Network          | Low    | Active rules per firewall backend  |
 | `ipv6`                 | Network          | Low    | IPv6 enabled/disabled              |
 | `open ports`           | Network          | Medium | Locally listening ports            |
+| `services`             | Network          | Medium | Running systemd services           |
 | `tcp syn cookies`      | Network          | Medium | SYN flood protection               |
 | `reverse path filter`  | Network          | Medium | IP spoofing protection             |
 | `world writable files` | Filesystem       | High   | Files writable by any user         |
 | `suid binaries`        | Filesystem       | Medium | Binaries with SUID bit set         |
 | `/tmp noexec`          | Filesystem       | Medium | /tmp mounted with noexec           |
 | `/tmp sticky bit`      | Filesystem       | Low    | Sticky bit on /tmp                 |
+
 
 ---
 
@@ -69,7 +72,7 @@ $ secfetch
 ```
                    ____     __       __
    ________  _____/ __/__  / /______/ /_
-  / ___/ _ \ / ___/ /_/ _ \/ __/ ___/ __ \
+  / ___/ _ \/ ___/ /_/ _ \/ __/ ___/ __ \
  (__  )  __/ /__/ __/  __/ /_/ /__/ / / /
 /____/\___/\___/_/  \___/\__/\___/_/ /_/
 
@@ -94,10 +97,11 @@ $ secfetch
 
   Network
   ────────────────────────────────────────
-    ✖  Firewall                No firewall detected
+    ⚠  Firewall Rules          No rules found
     •  IPv6                    Enabled
-    ⚠  Open Ports              53, 68
+    ⚠  Open Ports              53 (domain/UDP), 68 (bootpc/UDP)
     ✔  Reverse Path Filter     Strict
+    ⚠  Services                10 running, 5 unexpected
     ✔  TCP SYN Cookies         Enabled
 
   Security Score
@@ -105,21 +109,20 @@ $ secfetch
     System                [░░░░░░░░░░░░]  0/100
     Kernel Security       [██████████░░]  85/100
     Kernel Hardening      [████████░░░░]  72/100
-    Network               [██████░░░░░░]  55/100
+    Network               [███████░░░░░]  65/100
   ────────────────────────────────────────
-    Total                 [███████░░░░░]  64/100
+    Total                 [████████░░░░]  67/100
 ```
 
 ### Short mode
 $ secfetch --short
-
-  ```
-┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-  │  System    Kernel: 6.19.6-arch1-1        Secure Boot: ✖ Disabled                                                   │
-  │  Security  ASLR: ✔ Full         Lockdown: ⚠ none                                                          │
-  │  Network   Firewall: ✖ No firewall detected  Ports: ⚠ 53, 68, 631, 1716, 5353, 5355, 32796, 43111, 48648  │
-  │  Score     [█████████░░░░░░]  64/100                                                                               │
-  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  System    Kernel: 6.19.6-arch1-1        Secure Boot: ✖ Disabled                                                                                                                                                                                                                    │
+  │  Security  ASLR: ✔ Full         Lockdown: ⚠ none                                                                                                                                                                                                                           │
+  │  Network   Firewall: N/A                 Ports: ⚠ 53 (domain/UDP), 68 (bootpc/UDP), 631 (ipps/TCP), 1716 (xmsg/UDP), 5353 (mdns/UDP), 5355 (llmnr/UDP), 43111 (Unknown/TCP), 60854 (Dynamic/Ephemeral/UDP)  │
+  │  Score     [██████████░░░░░]  67/100                                                                                                                                                                                                                                                │
+  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 The short mode is designed for use in .bashrc / .zshrc as a terminal startup overview.
 The settings for the checks that can be performed in fastscan can be set to true/false in the config.conf file created for this purpose after starting secfetch for the first time.
@@ -178,6 +181,7 @@ secfetch/
 │ │ │ │ ├──  ipv6.py 
 │ │ │ │ ├── rp_filter.py
 │ │ │ │ ├── tcp_syncookies.py
+│ │ │ │ ├── port_db.py
 │ │ │ │ └── ports.py 
 │ │ │ └── system/ 
 │ │ │ │ ├── __init__.py
@@ -201,9 +205,12 @@ secfetch/
 
 ## Roadmap
 
-**v1.3**:
-- Expansion of network checks --> risk assessment of open ports, firewall rules, active services.
-- Compression of previously written code and naming of its functions using # comments.
+**v1.3.1**:
+- Fix design of "secfetch --short"
+
+**v1.4**:
+- Adding live monitoring "secfetch live": for example: Easy firewall/port monitoring
+  $\rightarrow$ Changeable refreshrate (standard: 3 seconds)
 
 **v2.0**:
 - `secfetch deepscan` with extended checks, CVE lookups and detailed system fingerprinting.
