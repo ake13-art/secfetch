@@ -1,4 +1,5 @@
 import argparse
+import os
 from secfetch.core.runner import run_checks
 from secfetch.ui.output import print_results, print_results_short
 from secfetch.ui.help import print_help, print_check_help
@@ -6,14 +7,9 @@ from secfetch.checks.network import port_db
 
 
 def main():
-    # Initialize port database (loads cache, triggers background update)
     port_db.initialize()
 
-    parser = argparse.ArgumentParser(
-        prog="secfetch",
-        add_help=False,
-    )
-
+    parser = argparse.ArgumentParser(prog="secfetch", add_help=False)
     parser.add_argument("command", nargs="?", default="scan", help=argparse.SUPPRESS)
     parser.add_argument("check", nargs="?", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--short", action="store_true", help=argparse.SUPPRESS)
@@ -33,6 +29,10 @@ def main():
         else:
             print_help()
         return
+
+    # set before run_checks so ports.py can read it
+    if args.short:
+        os.environ["SECFETCH_SHORT"] = "1"
 
     if args.command == "fastscan":
         results = run_checks(fast=True)
