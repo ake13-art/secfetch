@@ -1,4 +1,5 @@
 import sys
+import re
 from secfetch.core.scoring import calculate_score
 
 # ─────────────────────────────────────────────
@@ -39,9 +40,7 @@ CATEGORY_TITLES = {
     "kernel_hardening":  "Kernel Hardening",
     "network":           "Network",
     "filesystem":        "Filesystem",
-}
-
-# color codes
+}# color codes
 RED, YELLOW, GREEN, CYAN, RESET = "\033[31m", "\033[33m", "\033[32m", "\033[36m", "\033[0m"
 STATUS_COLORS = {"ok": GREEN, "warn": YELLOW, "bad": RED, "info": CYAN}
 
@@ -56,6 +55,11 @@ def score_bar(score: int, width: int = 15) -> str:
     bar = "█" * filled + "░" * (width - filled)
     color = GREEN if score >= 75 else YELLOW if score >= 40 else RED
     return f"{color}[{bar}]{RESET}"
+
+
+# [CHANGED] helper to strip ANSI codes for accurate length calculation
+def _strip_ansi(text: str) -> str:
+    return re.sub(r'\033\[[0-9;]*m', '', text)
 
 
 # ─────────────────────────────────────────────
@@ -83,9 +87,7 @@ def print_results(results: list[dict]) -> None:
             name = r["name"].ljust(22)
             val  = r["value"] if "\033[" in r["value"] else colorize(r["status"], r["value"])  # [CHANGED]
             print(f"    {icon}  {name}  {val}")
-        print()
-
-    # score section
+        print()# score section
     print("  Security Score")
     print("  " + "─" * 40)
     for cat in CATEGORY_ORDER:
@@ -123,11 +125,12 @@ def _short_box(results: list[dict]) -> None:
     ]
 
     print()
-    # top border – use printable length (strip ANSI codes for width calc)
-    width = max(len(l) for l in lines) + 4
+    # [CHANGED] use visible length (strip ANSI) for accurate box width
+    width = max(len(_strip_ansi(l)) for l in lines) + 4
     print("  ┌" + "─" * (width - 2) + "┐")
     for l in lines:
-        pad = width - len(l) - 2
+        # [CHANGED] pad based on visible length, not raw string length
+        pad = width - len(_strip_ansi(l)) - 2
         print("  │" + l + " " * pad + "│")
     print("  └" + "─" * (width - 2) + "┘")
     print()
@@ -156,9 +159,7 @@ def _short_side(results: list[dict]) -> None:
         f"  Firewall     {fmt('Firewall')}",
         f"  Ports        {fmt('Open Ports')}",
         f"  Score        {score_bar(score, width=12)}  {score}/100",
-    ]
-
-    # print logo lines left, info lines right
+    ]# print logo lines left, info lines right
     max_lines = max(len(LOGO_SHORT), len(info_lines))
     for i in range(max_lines):
         left  = LOGO_SHORT[i]  if i < len(LOGO_SHORT)  else " " * 42
@@ -177,3 +178,4 @@ def print_results_short(results: list[dict]) -> None:
         _short_side(results)
     else:
         _short_box(results)
+
