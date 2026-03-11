@@ -1,4 +1,5 @@
 import subprocess
+import os
 from secfetch.core.check import security_check
 from secfetch.checks.network import port_db
 
@@ -55,7 +56,6 @@ def check():
         if not ports:
             return {"status": "ok", "value": "None"}
 
-        # Determine overall status from worst port risk
         risk_order = {
             "suspicious": 3,
             "unnecessary": 2,
@@ -69,9 +69,15 @@ def check():
         if worst["risk"] == "suspicious":
             overall = "critical"
 
+        short_mode = os.environ.get("SECFETCH_SHORT", "0") == "1"
+
+        def format_port(p: dict) -> str:
+            if short_mode:
+                return colorize_port(p["port"], p["risk"])
+            return colorize_port(f"{p['port']} ({p['name']}/{p['proto']})", p["risk"])
+
         value = ", ".join(
-            colorize_port(f"{p['port']} ({p['name']}/{p['proto']})", p["risk"])
-            for p in sorted(ports, key=lambda p: int(p["port"]))
+            format_port(p) for p in sorted(ports, key=lambda p: int(p["port"]))
         )
 
         return {"status": overall, "value": value}
