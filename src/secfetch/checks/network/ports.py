@@ -1,5 +1,20 @@
 import subprocess
 from secfetch.core.check import security_check
+from secfetch.checks.network import port_db
+
+RED, YELLOW, GREEN, RESET = "\033[31m", "\033[33m", "\033[32m", "\033[0m"
+
+RISK_COLORS = {
+    "expected": GREEN,
+    "unknown": YELLOW,
+    "unnecessary": YELLOW,
+    "suspicious": RED,
+}
+
+
+def colorize_port(port_str: str, risk: str) -> str:
+    color = RISK_COLORS.get(risk, YELLOW)
+    return f"{color}{port_str}{RESET}"
 
 
 @security_check(name="Open Ports", category="network", risk="medium")
@@ -17,21 +32,49 @@ def check():
                 continue
 
             local = parts[4]
+            proto = "UDP" if "udp" in line.lower() else "TCP"
+
             if ":" in local:
-                port = local.rsplit(":", 1)[-1]
+                port_str = local.rsplit(":", 1)[-1]
                 try:
-                    int(port)
-                    if port not in ports:
-                        ports.append(port)
+                    port_num = int(port_str)
                 except ValueError:
                     continue
+
+                if port_str not in [p["port"] for p in ports]:
+                    name, risk = port_db.get_port_info(port_num, proto)
+                    ports.append(
+                        {
+                            "port": port_str,
+                            "name": name,
+                            "proto": proto,
+                            "risk": risk,
+                        }
+                    )
 
         if not ports:
             return {"status": "ok", "value": "None"}
 
-        # more than 5 open ports is suspicious
-        status = "warn" if len(ports) > 5 else "info"
-        return {"status": status, "value": ", ".join(sorted(ports, key=int))}
+        # Determine overall status from worst port risk
+        risk_order = {
+            "suspicious": 3,
+            "unnecessary": 2,
+            "warn": 1,
+            "unknown": 1,
+            "expected": 0,
+            "info": 0,
+        }
+        worst = max(ports, key=lambda p: risk_order.get(p["risk"], 0))
+        overall = "warn" if risk_order.get(worst["risk"], 0) >= 2 else "info"
+        if worst["risk"] == "suspicious":
+            overall = "critical"
 
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        return {"status": "info", "value": "Unknown"}
+        value = ", ".join(
+            colorize_port(f"{p['port']} ({p['name']}/{p['proto']})", p["risk"])
+            for p in sorted(ports, key=lambda p: int(p["port"]))
+        )
+
+        return {"status": overall, "value": value}
+
+    except Exception as e:
+        return {"status": "info", "value": f"Error: {e}"}

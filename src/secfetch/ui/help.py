@@ -172,6 +172,24 @@ CHECK_DESCRIPTIONS = {
         "bad": "Disabled (0) – IP spoofing attacks are not blocked at kernel level.",
         "fix": "sysctl -w net.ipv4.conf.all.rp_filter=1  – or set permanently in /etc/sysctl.conf",
     },
+    "firewall rules": {
+        "title": "Firewall Rules",
+        "category": "Network",
+        "risk": "Low",
+        "description": "Counts active firewall rules across ufw, nftables, and iptables.",
+        "good": "Rules are configured and active.",
+        "bad": "No firewall rules found – traffic is unfiltered.",
+        "fix": "Configure rules: sudo ufw default deny incoming && sudo ufw enable",
+    },
+    "services": {
+        "title": "Active Services",
+        "category": "Network",
+        "risk": "Medium",
+        "description": "Lists running systemd services and flags unexpected ones.",
+        "good": "Only expected services running.",
+        "bad": "Unknown or unnecessary services increase attack surface.",
+        "fix": "Disable unused: sudo systemctl disable --now <service>",
+    },
 }
 
 

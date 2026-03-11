@@ -27,12 +27,14 @@ world_writable = false
 suid = false
 tmp_noexec = false
 sticky_tmp = false
+firewall_rules = false
+services = false
 """
 
 
 def load_config() -> configparser.ConfigParser:
+    # Create default config on first run, then read it
     config = configparser.ConfigParser()
-    # create default config if it doesn't exist yet
     if not CONFIG_PATH.exists():
         CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         CONFIG_PATH.write_text(DEFAULT_CONFIG.strip())
@@ -41,5 +43,5 @@ def load_config() -> configparser.ConfigParser:
 
 
 def is_enabled(config: configparser.ConfigParser, check_name: str) -> bool:
-    # fallback = true so unknown checks always run in full scan
+    # Fallback true = unknown checks always run in full scan
     return config.getboolean("checks", check_name, fallback=True)

@@ -1,8 +1,8 @@
 from secfetch.core.check import security_check
 
 
-def read_sysctl(path):
-    # helper to safely read a sysctl value
+def _read(path):
+    # Safely read a sysctl value from /proc or /sys
     try:
         with open(path) as f:
             return f.read().strip()
@@ -10,62 +10,60 @@ def read_sysctl(path):
         return None
 
 
+# Map sysctl values to (status, display_value)
+_KPTR = {
+    "2": ("ok", "Fully Restricted"),
+    "1": ("warn", "Partially Restricted"),
+    "0": ("bad", "Unrestricted"),
+}
+_BOOL = {"1": ("ok", "Enabled"), "0": ("bad", "Disabled")}
+_BOOL_WARN = {"1": ("ok", "Enabled"), "0": ("warn", "Disabled")}
+_PTRACE = {
+    "3": ("ok", "Fully Restricted"),
+    "2": ("ok", "Admin Only"),
+    "1": ("ok", "Restricted"),
+    "0": ("bad", "Unrestricted"),
+}
+_BPF = {
+    "2": ("ok", "Permanently Disabled"),
+    "1": ("ok", "Disabled"),
+    "0": ("bad", "Enabled"),
+}
+
+
+def _sysctl_check(path, mapping):
+    # Generic sysctl check: read value, look up in mapping
+    val = _read(path)
+    if val in mapping:
+        return {"status": mapping[val][0], "value": mapping[val][1]}
+    return {"status": "info", "value": "Unknown"}
+
+
+# Kernel pointer hiding level (0/1/2)
 @security_check(name="kptr_restrict", category="kernel_hardening", risk="medium")
 def check_kptr():
-    val = read_sysctl("/proc/sys/kernel/kptr_restrict")
-    # 2 = fully hidden, 1 = partial, 0 = exposed
-    if val == "2":
-        return {"status": "ok", "value": "Fully Restricted"}
-    if val == "1":
-        return {"status": "warn", "value": "Partially Restricted"}
-    if val == "0":
-        return {"status": "bad", "value": "Unrestricted"}
-    return {"status": "info", "value": "Unknown"}
+    return _sysctl_check("/proc/sys/kernel/kptr_restrict", _KPTR)
 
 
+# Restrict dmesg access to root
 @security_check(name="dmesg_restrict", category="kernel_hardening", risk="medium")
 def check_dmesg():
-    val = read_sysctl("/proc/sys/kernel/dmesg_restrict")
-    if val == "1":
-        return {"status": "ok", "value": "Enabled"}
-    if val == "0":
-        return {"status": "bad", "value": "Disabled"}
-    return {"status": "info", "value": "Unknown"}
+    return _sysctl_check("/proc/sys/kernel/dmesg_restrict", _BOOL)
 
 
+# Yama ptrace scope (0=open, 3=blocked)
 @security_check(name="ptrace_scope", category="kernel_hardening", risk="medium")
 def check_ptrace():
-    val = read_sysctl("/proc/sys/kernel/yama/ptrace_scope")
-    # 3 = fully blocked, 2 = admin only, 1 = restricted, 0 = unrestricted
-    if val == "3":
-        return {"status": "ok", "value": "Fully Restricted"}
-    if val == "2":
-        return {"status": "ok", "value": "Admin Only"}
-    if val == "1":
-        return {"status": "ok", "value": "Restricted"}
-    if val == "0":
-        return {"status": "bad", "value": "Unrestricted"}
-    return {"status": "info", "value": "Unknown"}
+    return _sysctl_check("/proc/sys/kernel/yama/ptrace_scope", _PTRACE)
 
 
+# Prevent loading new kernel modules at runtime
 @security_check(name="modules_disabled", category="kernel_hardening", risk="low")
 def check_modules():
-    val = read_sysctl("/proc/sys/kernel/modules_disabled")
-    if val == "1":
-        return {"status": "ok", "value": "Enabled"}
-    if val == "0":
-        return {"status": "warn", "value": "Disabled"}
-    return {"status": "info", "value": "Unknown"}
+    return _sysctl_check("/proc/sys/kernel/modules_disabled", _BOOL_WARN)
 
 
+# Restrict unprivileged BPF usage (0=allowed, 2=permanent)
 @security_check(name="unprivileged_bpf", category="kernel_hardening", risk="medium")
 def check_bpf():
-    val = read_sysctl("/proc/sys/kernel/unprivileged_bpf_disabled")
-    # 2 = permanently off, 1 = off, 0 = on (dangerous)
-    if val == "2":
-        return {"status": "ok", "value": "Permanently Disabled"}
-    if val == "1":
-        return {"status": "ok", "value": "Disabled"}
-    if val == "0":
-        return {"status": "bad", "value": "Enabled"}
-    return {"status": "info", "value": "Unknown"}
+    return _sysctl_check("/proc/sys/kernel/unprivileged_bpf_disabled", _BPF)
