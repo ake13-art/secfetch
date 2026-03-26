@@ -1,8 +1,9 @@
 from secfetch.core.check import security_check
+from secfetch.core.error_handling import handle_check_errors
 
 
-# Check kernel lockdown mode (integrity/confidentiality/none)
 @security_check(name="Lockdown", category="kernel_security", risk="medium")
+@handle_check_errors
 def check():
     try:
         with open("/sys/kernel/security/lockdown") as f:

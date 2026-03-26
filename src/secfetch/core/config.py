@@ -19,14 +19,18 @@ rp_filter = true
 
 # --- fullscan only: slow or lower priority ---
 lsm = false
-kptr_restrict = false
-modules_disabled = false
-bpf_hardening = false
+# STANDARDIZATION FIX: Updated config keys to match new Title Case check names
+kptr_restrict = false        # "Kptr Restrict" → "kptr_restrict" 
+dmesg_restrict = false       # "Dmesg Restrict" → "dmesg_restrict"
+ptrace_scope = false         # "Ptrace Scope" → "ptrace_scope"
+modules_disabled = false     # "Modules Disabled" → "modules_disabled"
+unprivileged_bpf = false     # "Unprivileged BPF" → "unprivileged_bpf"
 ipv6 = false
-world_writable = false
-suid = false
-tmp_noexec = false
-sticky_tmp = false
+# IMPLEMENTATION FIX: Corrected config names to match actual check names
+world_writable = false        # "World Writable" → "world_writable"
+suid_binaries = false        # "SUID Binaries" → "suid_binaries" 
+/tmp_noexec = false          # "/tmp noexec" → "/tmp_noexec"
+/tmp_sticky_bit = false      # "/tmp Sticky Bit" → "/tmp_sticky_bit"
 firewall_rules = false
 services = false
 """
@@ -43,5 +47,14 @@ def load_config() -> configparser.ConfigParser:
 
 
 def is_enabled(config: configparser.ConfigParser, check_name: str) -> bool:
-    # Fallback true = unknown checks always run in full scan
-    return config.getboolean("checks", check_name, fallback=True)
+    """
+    Check if a security check is enabled in the configuration.
+    CRITICAL BUG FIX: Changed fallback from True to False to fix fastscan behavior.
+    
+    - fastscan mode: only runs checks explicitly enabled in config (fallback=False needed)
+    - fullscan mode: runs all checks regardless of config (but this function isn't used for fullscan)
+    
+    The previous fallback=True caused ALL unknown checks to run in fastscan, breaking the
+    entire purpose of having separate fast/full scan modes.
+    """
+    return config.getboolean("checks", check_name, fallback=False)

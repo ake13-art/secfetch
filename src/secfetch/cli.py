@@ -1,6 +1,7 @@
 import argparse
 import threading
 import time
+from secfetch.ui.improve import print_improve, apply_fixes
 from secfetch.core.engine import run_checks
 from secfetch.ui.output import print_results, print_results_short, print_results_live
 from secfetch.ui.help import print_help, print_check_help
@@ -14,6 +15,7 @@ def main():
     parser.add_argument("command", nargs="?", default="scan", help=argparse.SUPPRESS)
     parser.add_argument("check", nargs="?", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--short", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--auto", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "-h", "--help", action="store_true", default=False, help=argparse.SUPPRESS
     )
@@ -59,6 +61,14 @@ def main():
             pass
 
         print("\n  Live monitoring stopped.")
+        return
+
+    if args.command == "improve":
+        results = run_checks(fast=False)
+        if args.auto:
+            apply_fixes(results)
+        else:
+            print_improve(results)
         return
 
     if args.command == "fastscan":

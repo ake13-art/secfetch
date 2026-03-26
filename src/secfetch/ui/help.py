@@ -1,35 +1,36 @@
 from secfetch.ui.output import LOGO_FULL
+from secfetch.core.logger import log_warning  # PROFESSIONALIZATION FIX: Added proper logging
 
 CHECK_DESCRIPTIONS = {
     "kernel": {
         "title": "Kernel Version",
         "category": "System",
         "risk": "Info",
-        "description": "Displays the currently running kernel version.",
-        "good": "Up-to-date kernel with recent security patches applied.",
-        "bad": "Outdated kernels may contain unpatched CVEs.",
-        "fix": "Update your kernel: sudo pacman -Syu",
+        "description": "Shows the running kernel version.",
+        "good": "Up-to-date kernel.",
+        "bad": "Outdated kernels may contain known vulnerabilities.",
+        "fix": "Update your kernel via your package manager.",
     },
-    "secure boot": {
+    "secure_boot": {
         "title": "Secure Boot",
         "category": "System",
-        "risk": "Medium",
-        "description": "Checks whether Secure Boot is enabled. Prevents unsigned bootloaders from running.",
-        "good": "Secure Boot is active.",
-        "bad": "Disabled Secure Boot allows unsigned bootloaders (Evil Maid attacks).",
-        "fix": "Enable Secure Boot in your UEFI firmware settings.",
+        "risk": "High",
+        "description": "Checks whether UEFI Secure Boot is enabled.",
+        "good": "Secure Boot enabled – only signed bootloaders/kernels can run.",
+        "bad": "Disabled – bootkits and unsigned code can load at boot.",
+        "fix": "Enable Secure Boot in your UEFI/BIOS settings.",
     },
     "aslr": {
-        "title": "ASLR – Address Space Layout Randomization",
+        "title": "ASLR",
         "category": "Kernel Security",
         "risk": "High",
-        "description": "Randomizes memory addresses to make memory-based exploits harder.",
-        "good": "Value 2 = full randomization active.",
-        "bad": "Value 0/1 = attackers can predict memory layout.",
+        "description": "Address Space Layout Randomization randomizes memory layout to prevent exploits.",
+        "good": "Value 2 = full randomization.",
+        "bad": "Value 0 or 1 = partial or no randomization.",
         "fix": "echo 2 | sudo tee /proc/sys/kernel/randomize_va_space",
     },
     "lockdown": {
-        "title": "Kernel Lockdown",
+        "title": "Lockdown",
         "category": "Kernel Security",
         "risk": "Medium",
         "description": "Restricts userspace access to kernel internals (integrity/confidentiality modes).",
@@ -67,34 +68,25 @@ CHECK_DESCRIPTIONS = {
     "modules_disabled": {
         "title": "modules_disabled",
         "category": "Kernel Hardening",
-        "risk": "Low",
-        "description": "Prevents loading of additional kernel modules after boot.",
-        "good": "Value 1 = no new modules can be loaded.",
-        "bad": "Value 0 = rootkits can be loaded as kernel modules.",
-        "fix": "echo 1 | sudo tee /proc/sys/kernel/modules_disabled",
+        "risk": "High",
+        "description": "Prevents loading of new kernel modules at runtime.",
+        "good": "Value 1 = module loading blocked (irreversible until reboot).",
+        "bad": "Value 0 = modules can be loaded, rootkits possible.",
+        "fix": "echo 1 | sudo tee /proc/sys/kernel/modules_disabled  (irreversible!)",
     },
     "unprivileged_bpf": {
-        "title": "unprivileged_bpf",
+        "title": "Unprivileged BPF",
         "category": "Kernel Hardening",
         "risk": "Medium",
-        "description": "Prevents unprivileged users from loading BPF programs.",
-        "good": "Value 2 = permanently disabled.",
-        "bad": "Value 0 = BPF accessible to all users, known exploit vector.",
+        "description": "Controls whether unprivileged users can use BPF programs.",
+        "good": "Value 2 = disabled for unprivileged users.",
+        "bad": "Value 0 = BPF accessible to all, enables kernel-level attacks.",
         "fix": "echo 2 | sudo tee /proc/sys/kernel/unprivileged_bpf_disabled",
-    },
-    "firewall": {
-        "title": "Firewall",
-        "category": "Network",
-        "risk": "Medium",
-        "description": "Checks whether UFW is active.",
-        "good": "Firewall active = incoming connections are filtered.",
-        "bad": "No firewall = all ports reachable.",
-        "fix": "sudo ufw enable",
     },
     "lsm": {
         "title": "Linux Security Modules",
         "category": "Kernel Security",
-        "risk": "Medium",
+        "risk": "High",
         "description": "Shows which Linux Security Modules are active (e.g. AppArmor, SELinux).",
         "good": "One or more LSMs active, e.g. AppArmor or SELinux.",
         "bad": "No LSM active = no mandatory access control enforced.",
@@ -109,16 +101,61 @@ CHECK_DESCRIPTIONS = {
         "bad": "Active without firewall rules may increase attack surface.",
         "fix": "echo 1 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6",
     },
-    "open ports": {
+    "open_ports": {
         "title": "Open Ports",
         "category": "Network",
         "risk": "Medium",
         "description": "Lists all locally listening ports.",
         "good": "As few open ports as possible.",
         "bad": "Many open ports = larger attack surface.",
-        "fix": "Disable unused services: sudo systemctl disable <service>",
+        "fix": "Review open ports with: ss -tulnp | List services: systemctl list-units --type=service --state=running | Disable unused: sudo systemctl disable --now <service>",
     },
-    "world writable files": {
+    "firewall": {
+        "title": "Firewall",
+        "category": "Network",
+        "risk": "High",
+        "description": "Checks whether ufw, firewalld, or iptables rules are active.",
+        "good": "Firewall active with configured rules.",
+        "bad": "No firewall found or inactive – traffic is unfiltered.",
+        "fix": "Install ufw: sudo apt install ufw && sudo ufw default deny incoming && sudo ufw enable",
+    },
+    "firewall_rules": {
+        "title": "Firewall Rules",
+        "category": "Network",
+        "risk": "High",
+        "description": "Checks active firewall rule count for ufw, nftables and iptables.",
+        "good": "Firewall active with configured rules.",
+        "bad": "No active firewall or no rules configured.",
+        "fix": "Enable ufw: sudo ufw enable && sudo ufw default deny incoming",
+    },
+    "services": {
+        "title": "Active Services",
+        "category": "Network",
+        "risk": "Medium",
+        "description": "Lists running systemd services and flags suspicious or unnecessary ones.",
+        "good": "No suspicious or unnecessary services running.",
+        "bad": "Suspicious services (e.g. telnetd, rshd) or unnecessary services (e.g. cups, avahi) detected.",
+        "fix": "List running services: systemctl list-units --type=service --state=running | Disable unused: sudo systemctl disable --now <service>",
+    },
+    "tcp_syn_cookies": {
+        "title": "TCP SYN Cookies",
+        "category": "Network",
+        "risk": "Medium",
+        "description": "Protects against SYN flood denial-of-service attacks.",
+        "good": "Enabled (value 1).",
+        "bad": "Disabled = vulnerable to SYN flood attacks.",
+        "fix": "sysctl -w net.ipv4.tcp_syncookies=1",
+    },
+    "reverse_path_filter": {
+        "title": "Reverse Path Filter",
+        "category": "Network",
+        "risk": "Medium",
+        "description": "Validates source addresses of incoming packets to prevent IP spoofing.",
+        "good": "Enabled (value 1 = strict).",
+        "bad": "Disabled = spoofed packets may be accepted.",
+        "fix": "sysctl -w net.ipv4.conf.all.rp_filter=1",
+    },
+    "world_writable_files": {
         "title": "World Writable Files",
         "category": "Filesystem",
         "risk": "High",
@@ -127,7 +164,7 @@ CHECK_DESCRIPTIONS = {
         "bad": "World-writable files allow unprivileged users to overwrite critical data.",
         "fix": "chmod o-w <file>  – remove world-write permission from affected files.",
     },
-    "suid binaries": {
+    "suid_binaries": {
         "title": "SUID Binaries",
         "category": "Filesystem",
         "risk": "Medium",
@@ -136,7 +173,7 @@ CHECK_DESCRIPTIONS = {
         "bad": "Unexpected SUID binaries are a common privilege escalation vector.",
         "fix": "chmod u-s <file>  – remove SUID bit from untrusted binaries.",
     },
-    "/tmp noexec": {
+    "/tmp_noexec": {
         "title": "/tmp noexec",
         "category": "Filesystem",
         "risk": "Medium",
@@ -145,50 +182,14 @@ CHECK_DESCRIPTIONS = {
         "bad": "Without noexec, attackers can drop and run malware in /tmp.",
         "fix": "Add 'noexec' to the /tmp entry in /etc/fstab, then remount.",
     },
-    "/tmp sticky bit": {
+    "/tmp_sticky_bit": {
         "title": "/tmp Sticky Bit",
         "category": "Filesystem",
         "risk": "Low",
         "description": "Checks if the sticky bit is set on /tmp. Prevents users from deleting each other's files.",
         "good": "Sticky bit is set – only the owner can delete their own files.",
-        "bad": "Without it, any user can delete files in /tmp they don't own.",
+        "bad": "Without sticky bit, any user can delete or rename files in /tmp.",
         "fix": "chmod +t /tmp",
-    },
-    "tcp syn cookies": {
-        "title": "TCP SYN Cookies",
-        "category": "Network",
-        "risk": "Medium",
-        "description": "Checks if SYN cookies are enabled. Protects against SYN flood DoS attacks.",
-        "good": "SYN cookies are enabled – the kernel handles flood attacks gracefully.",
-        "bad": "Without SYN cookies, a flood attack can exhaust the connection table.",
-        "fix": "sysctl -w net.ipv4.tcp_syncookies=1  – or set permanently in /etc/sysctl.conf",
-    },
-    "reverse path filter": {
-        "title": "Reverse Path Filter",
-        "category": "Network",
-        "risk": "Medium",
-        "description": "Checks rp_filter setting. Blocks packets with spoofed source addresses.",
-        "good": "Strict mode (1) – spoofed packets are dropped at the interface.",
-        "bad": "Disabled (0) – IP spoofing attacks are not blocked at kernel level.",
-        "fix": "sysctl -w net.ipv4.conf.all.rp_filter=1  – or set permanently in /etc/sysctl.conf",
-    },
-    "firewall rules": {
-        "title": "Firewall Rules",
-        "category": "Network",
-        "risk": "Low",
-        "description": "Counts active firewall rules across ufw, nftables, and iptables.",
-        "good": "Rules are configured and active.",
-        "bad": "No firewall rules found – traffic is unfiltered.",
-        "fix": "Configure rules: sudo ufw default deny incoming && sudo ufw enable",
-    },
-    "services": {
-        "title": "Active Services",
-        "category": "Network",
-        "risk": "Medium",
-        "description": "Lists running systemd services and flags unexpected ones.",
-        "good": "Only expected services running.",
-        "bad": "Unknown or unnecessary services increase attack surface.",
-        "fix": "Disable unused: sudo systemctl disable --now <service>",
     },
 }
 
@@ -206,6 +207,8 @@ def print_help() -> None:
     print("    secfetch --short              Compact one-box summary")
     print("    secfetch live                 Live monitoring, auto-refresh every 5s")
     print("    secfetch live --interval <n>  Refresh every n seconds")
+    print("    secfetch improve              Show issues with fix suggestions")
+    print("    secfetch improve --auto       Interactive auto-fix selection")
     print("    secfetch help                 This help page")
     print("    secfetch help <check>         Detailed info about a check")
     print()
@@ -219,10 +222,11 @@ def print_help() -> None:
 
 
 def print_check_help(name: str) -> None:
-    key = name.lower()
+    key = name.lower().replace(" ", "_")
     info = CHECK_DESCRIPTIONS.get(key)
 
     if not info:
+        log_warning(f"User requested help for unknown check: '{name}'")
         print(f"\n  [!] Unknown check: '{name}'")
         print(f"  Run 'secfetch help' to see all available checks.\n")
         return

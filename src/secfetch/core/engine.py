@@ -5,6 +5,7 @@ import importlib
 import pkgutil
 import secfetch.checks
 from secfetch.core.config import load_config, is_enabled
+from secfetch.core.logger import log_error  # PROFESSIONALIZATION FIX: Added proper logging
 
 # ── Registry ──────────────────────────────────
 _checks: list[dict] = []
@@ -34,7 +35,8 @@ def _discover_checks():
         try:
             importlib.import_module(mod.name)
         except Exception as e:
-            print(f"[!] Failed to load {mod.name}: {e}")
+            # PROFESSIONALIZATION FIX: Use proper logging instead of unprofessional print()
+            log_error(f"Failed to load security check module {mod.name}: {e}")
 
 
 # ── Runner ────────────────────────────────────

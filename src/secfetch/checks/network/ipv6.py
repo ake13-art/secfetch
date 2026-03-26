@@ -1,7 +1,9 @@
 from secfetch.core.check import security_check
+from secfetch.core.error_handling import handle_check_errors
 
 
 @security_check(name="IPv6", category="network", risk="low")
+@handle_check_errors
 def check():
     try:
         # read global ipv6 disable flag

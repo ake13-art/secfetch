@@ -1,7 +1,9 @@
 from secfetch.core.check import security_check
+from secfetch.core.error_handling import handle_check_errors
 
 
 @security_check(name="Reverse Path Filter", category="network", risk="medium")
+@handle_check_errors
 def check():
     try:
         # rp_filter blocks packets with spoofed source addresses

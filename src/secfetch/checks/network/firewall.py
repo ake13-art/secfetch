@@ -36,11 +36,31 @@ def _nft_rules():
     ]
 
 
-@security_check(name="Firewall Rules", category="network", risk="low")
+@security_check(name="Firewall Rules", category="network", risk="high")  # BUG FIX: Changed from "low" to "high" - no firewall is critical
 def check():
-    # Try each backend, report rule count
+    """
+    Check if firewall is active and has rules configured.
+    BUG FIX: Improved logic to check firewall status, not just rules.
+    BUG FIX: Changed risk level from low to high - missing firewall is critical.
+    """
+    # First check if ufw is enabled (most common on Ubuntu/Debian)
+    try:
+        result = subprocess.run(
+            ["ufw", "status"], capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            status_line = result.stdout.split('\n')[0].strip()
+            if "Status: active" in status_line:
+                # Count actual rules
+                rules = _ufw_rules()
+                return {"status": "ok", "value": f"ufw active: {len(rules)} rules"}
+            else:
+                return {"status": "bad", "value": "ufw installed but inactive"}
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    
+    # Try other backends - check for any configured rules
     for name, fn in [
-        ("ufw", _ufw_rules),
         ("nftables", _nft_rules),
         ("iptables", _iptables_rules),
     ]:
@@ -50,4 +70,6 @@ def check():
                 return {"status": "ok", "value": f"{name}: {len(rules)} rules"}
         except (FileNotFoundError, subprocess.TimeoutExpired):
             continue
-    return {"status": "warn", "value": "No rules found"}
+    
+    # BUG FIX: No firewall found is "bad", not "warn" - this is a critical security issue
+    return {"status": "bad", "value": "No active firewall found"}

@@ -1,6 +1,7 @@
-<div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:161b22,100:1f6feb&height=180&section=header&text=&fontSize=0" width="100%"/>
+<div align="center">
+  
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:161b22,100:1f6feb&height=180§ion=header&text=&fontSize=0" width="100%"/>
 
 <br>
 
@@ -10,15 +11,16 @@
   / ___/ _ \/ ___/ /_/ _ \/ __/ ___/ __ \
  (__  )  __/ /__/ __/  __/ /_/ /__/ / / /
 /____/\___/\___/_/  \___/\__/\___/_/ /_/
+
 ```
 
 <br>
 
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=600&size=20&duration=3000&pause=1000&color=58A6FF&center=true&vCenter=true&repeat=true&width=550&height=50&lines=Linux+Security+Inspection+CLI;Like+neofetch%2C+but+for+your+security;One+command.+Full+overview.+Zero+bloat.)](https://github.com/ake13-art/secfetch)
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=600&size=20&duration=3000&pause=1000&color=58A6FF¢er=true&vCenter=true&repeat=true&width=550&height=50&lines=Linux+Security+Inspection+CLI;Like+neofetch,+but+for+your+security;One+command.+Full+overview.+Zero+bloat.)](https://github.com/ake13-art/secfetch)
 
 <br>
 
-![Version](https://img.shields.io/badge/version-1.4-1f6feb?style=for-the-badge&labelColor=0d1117)
+![Version](https://img.shields.io/badge/version-1.5-1f6feb?style=for-the-badge&labelColor=0d1117)
 ![License](https://img.shields.io/badge/license-GPL--3.0-58a6ff?style=for-the-badge&labelColor=0d1117)
 ![Python](https://img.shields.io/badge/python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=0d1117)
 ![Platform](https://img.shields.io/badge/platform-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=white&labelColor=0d1117)
@@ -38,14 +40,14 @@
 
 <div align="center">
 
-## ⚡ Quick Start
+  ## ⚡ Quick Start
 
 </div>
 
 <br>
 
 ```bash
-git clone https://github.com/ake13-art/secfetch.git && cd secfetch && pip install .
+pip install secfetch
 ```
 
 ```bash
@@ -60,13 +62,11 @@ secfetch
 
 <div align="center">
 
-## 🖥️ Commands
+  ## 🖥️ Commands
 
 </div>
 
 <br>
-
-<div align="center">
 
 | Command | What it does |
 |:---|:---|
@@ -75,10 +75,69 @@ secfetch
 | `secfetch --short` | Compact one‑box summary |
 | `secfetch live` | Live monitoring — auto refresh every 5s |
 | `secfetch live --interval <n>` | Custom refresh interval |
+| `secfetch improve` | Show issues with fix suggestions |
+| `secfetch improve --auto` | Interactive auto-fix selection |
 | `secfetch help <check>` | Detailed info, risk level & fix |
 | `secfetch -h` | Show all available options |
 
+<br>
+
+---
+
+<br>
+
+<div align="center">
+
+  ## 🔧 Improve Command
+
 </div>
+
+<br>
+
+The `improve` command helps you fix security issues:
+
+```bash
+secfetch improve
+```
+
+Shows all failed checks with risk levels and fix suggestions:
+
+```
+  3 issue(s) found
+  ✖  kptr_restrict           Risk: Medium  [auto-fixable]
+     Fix: echo 2 | sudo tee /proc/sys/kernel/kptr_restrict
+  ⚠  modules_disabled        Risk: High  [auto-fixable]
+     Fix: echo 1 | sudo tee /proc/sys/kernel/modules_disabled  (irreversible!)
+  ⚠  Lockdown                Risk: Medium
+     Fix: Add boot parameters: lsm=lockdown lockdown=integrity
+```
+
+### Auto-Fix
+
+```bash
+secfetch improve --auto
+```
+
+Interactive selection with toggle UI and safety warnings:
+
+```
+  Auto-Fix  —  secfetch improve --auto
+  ───────────────────────────────────────────────────────
+    [1] [✔] kptr_restrict       sudo sysctl -w kernel.kptr_restrict=2
+    [2] [✖] modules_disabled    sudo sysctl -w kernel.modules_disabled=1
+         ⚠  Irreversible until reboot!
+  Require manual fix  —  run secfetch improve for details:
+    ⚠  Lockdown               none
+  ───────────────────────────────────────────────────────
+  1 fix(es) selected.
+  Toggle: 1-2 | a = all | n = none | Enter = confirm | q = quit
+```
+
+**Features:**
+- Persistent fixes (written to `/etc/sysctl.d/99-secfetch.conf`)
+- Risky fix warnings (e.g. `modules_disabled`)
+- Service auto-disable for suspicious services (telnetd, rshd, etc.)
+- Firewall availability check (won't offer ufw if not installed)
 
 <br>
 
@@ -88,67 +147,20 @@ secfetch
 
 <div align="center">
 
-## 🔍 Security Checks
+  ## 🔍 Security Checks
 
 </div>
 
 <br>
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### 🖥️ System
-| Check | Risk |
+| Category | Checks |
 |:---|:---|
-| `kernel` | ℹ️ Info |
-| `secure boot` | ⚠️ Medium |
-
-### 🛡️ Kernel Security
-| Check | Risk |
-|:---|:---|
-| `aslr` | 🔴 High |
-| `lockdown` | ⚠️ Medium |
-| `lsm` | ⚠️ Medium |
-
-### 🔒 Kernel Hardening
-| Check | Risk |
-|:---|:---|
-| `kptr_restrict` | ⚠️ Medium |
-| `dmesg_restrict` | ⚠️ Medium |
-| `ptrace_scope` | ⚠️ Medium |
-| `modules_disabled` | 🟢 Low |
-| `unprivileged_bpf` | ⚠️ Medium |
-
-</td>
-<td width="50%" valign="top">
-
-### 🌐 Network
-| Check | Risk |
-|:---|:---|
-| `firewall` | ⚠️ Medium |
-| `firewall rules` | 🟢 Low |
-| `ipv6` | 🟢 Low |
-| `open ports` | ⚠️ Medium |
-| `services` | ⚠️ Medium |
-| `tcp syn cookies` | ⚠️ Medium |
-| `reverse path filter` | ⚠️ Medium |
-
-### 📁 Filesystem
-| Check | Risk |
-|:---|:---|
-| `world writable files` | 🔴 High |
-| `suid binaries` | ⚠️ Medium |
-| `/tmp noexec` | ⚠️ Medium |
-| `/tmp sticky bit` | 🟢 Low |
-
-<br>
-
-> Use `secfetch help <check>` for details on any check.
-
-</td>
-</tr>
-</table>
+| **System** | Kernel, Secure Boot |
+| **Kernel Security** | ASLR, Lockdown, LSM |
+| **Kernel Hardening** | kptr_restrict, dmesg_restrict, ptrace_scope, modules_disabled, unprivileged_bpf |
+| **Network** | Firewall, Firewall Rules, IPv6, Open Ports, Services, TCP SYN Cookies, Reverse Path Filter |
+| **Filesystem** | World Writable Files, SUID Binaries, /tmp noexec, /tmp Sticky Bit |
+Use `secfetch help <check>` for detailed information.
 
 <br>
 
@@ -158,14 +170,10 @@ secfetch
 
 <div align="center">
 
-## 📸 Example Output
+  ## 📸 Example Output
 
 </div>
 
-<br>
-
-<details>
-<summary><b>🔎 Full Mode</b> — <code>secfetch</code></summary>
 <br>
 
 ```
@@ -174,116 +182,39 @@ secfetch
   / ___/ _ \/ ___/ /_/ _ \/ __/ ___/ __ \
  (__  )  __/ /__/ __/  __/ /_/ /__/ / / /
 /____/\___/\___/_/  \___/\__/\___/_/ /_/
-
   System
   ────────────────────────────────────────
-    •  Kernel                  6.19.6-arch1-1
+    •  Kernel                  6.x.x-arch1-1
     ✖  Secure Boot             Disabled
-
   Kernel Security
   ────────────────────────────────────────
     ✔  ASLR                    Full
     ⚠  Lockdown                none
     ✔  LSM                     capability,landlock
-
   Kernel Hardening
   ────────────────────────────────────────
-    ✖  kptr_restrict           Unrestricted
+    ✔  kptr_restrict           Fully Restricted
     ✔  dmesg_restrict          Enabled
     ✔  ptrace_scope            Restricted
-    ⚠  modules_disabled        Disabled
+    ✔  modules_disabled        Disabled
     ✔  unprivileged_bpf        Permanently Disabled
-
   Network
   ────────────────────────────────────────
-    ⚠  Firewall Rules          No rules found
+    ✔  Firewall                ufw active: 10 rules
     •  IPv6                    Enabled
-    ⚠  Open Ports              53 (domain/UDP), 68 (bootpc/UDP)
+    ⚠  Open Ports              22 (SSH/TCP), 53 (domain/UDP)
     ✔  Reverse Path Filter     Strict
-    ⚠  Services                28 running, 26 unexpected
+    ✔  Services                24 running, none flagged
     ✔  TCP SYN Cookies         Enabled
-
   Security Score
   ────────────────────────────────────────
-    System                [░░░░░░░░░░░░]  0/100
-    Kernel Security       [██████████░░]  85/100
-    Kernel Hardening      [████████░░░░]  72/100
-    Network               [███████░░░░░]  65/100
+    System                [██████████░░]  50/100
+    Kernel Security       [██████████░░]  66/100
+    Kernel Hardening      [████████████] 100/100
+    Network               [██████████░░]  85/100
   ────────────────────────────────────────
-    Total                 [████████░░░░]  67/100
+    Total                 [██████████░░]  78/100
 ```
-
-</details>
-
-<details>
-<summary><b>📡 Live Mode</b> — <code>secfetch live</code></summary>
-<br>
-
-```
-                   ____     __       __
-   ________  _____/ __/__  / /______/ /_
-  / ___/ _ \/ ___/ /_/ _ \/ __/ ___/ __ \
- (__  )  __/ /__/ __/  __/ /_/ /__/ / / /
-/____/\___/\___/_/  \___/\__/\___/_/ /_/
-
-  System
-  ────────────────────────────────────────
-    •  Kernel                  6.19.6-arch1-1
-    ✖  Secure Boot             Disabled
-
-  Kernel Security
-  ────────────────────────────────────────
-    ✔  ASLR                    Full
-    ⚠  Lockdown                none
-    ✔  LSM                     capability,landlock
-
-  Kernel Hardening
-  ────────────────────────────────────────
-    ✖  kptr_restrict           Unrestricted
-    ✔  dmesg_restrict          Enabled
-    ✔  ptrace_scope            Restricted
-    ⚠  modules_disabled        Disabled
-    ✔  unprivileged_bpf        Permanently Disabled
-
-  Network
-  ────────────────────────────────────────
-    ⚠  Firewall Rules          No rules found
-    •  IPv6                    Enabled
-    ⚠  Open Ports              53 (domain/UDP), 68 (bootpc/UDP)
-    ✔  Reverse Path Filter     Strict
-    ⚠  Services                28 running, 26 unexpected
-    ✔  TCP SYN Cookies         Enabled
-
-  Security Score
-  ────────────────────────────────────────
-    System                [░░░░░░░░░░░░]  0/100
-    Kernel Security       [██████████░░]  85/100
-    Kernel Hardening      [████████░░░░]  72/100
-    Network               [███████░░░░░]  65/100
-  ────────────────────────────────────────
-    Total                 [████████░░░░]  67/100
-
-  Refreshing every 5s — Press Q + Enter to stop
-```
-
-</details>
-
-<details>
-<summary><b>⚡ Short Mode</b> — <code>secfetch --short</code></summary>
-<br>
-
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │  System    Kernel: 6.19.6-arch1-1   Secure Boot: ✖      │
-  │  Security  ASLR: ✔ Full             Lockdown: ⚠ none    │
-  │  Network   Firewall: N/A            Ports: ⚠ 53, 68     │
-  │  Score     [████████░░░░]  67/100                        │
-  └──────────────────────────────────────────────────────────┘
-```
-
-*Designed for `.bashrc` / `.zshrc` as a terminal startup overview.*
-
-</details>
 
 <br>
 
@@ -293,19 +224,26 @@ secfetch
 
 <div align="center">
 
-## ⚙️ Configuration
+  ## ⚙️ Configuration
 
 </div>
 
 <br>
 
-Fastscan checks can be toggled in `config.conf` (created on first run).
+Checks can be enabled/disabled in `~/.config/secfetch/checks.conf` (created on first run).
 
-Short mode layout can be changed in `output.py`:
+```ini
 
-```python
-SHORT_LAYOUT = "box"    # bordered box (default)
-# SHORT_LAYOUT = "side" # logo left, info right
+[checks]
+# Fast checks (run by default)
+aslr = true
+secure_boot = true
+kernel_version = true
+...
+# Full scan only (slower)
+lsm = false
+world_writable = false
+...
 ```
 
 <br>
@@ -316,36 +254,16 @@ SHORT_LAYOUT = "box"    # bordered box (default)
 
 <div align="center">
 
-## 🗺️ Roadmap
+  ## 🗺️ Roadmap
 
 </div>
 
 <br>
 
-<table>
-<tr>
-<td align="center" width="50%">
-
-### 🔧 v1.5
-
-`secfetch improve`
-Scan → find vulnerabilities → suggest fixes
-
-`secfetch improve --auto`
-Apply simple fixes automatically
-*(with consent prompt)*
-
-</td>
-<td align="center" width="50%">
-
-### 🚀 v2.0
-
-`secfetch deepscan`
-CVE lookups & system fingerprinting and much more
-
-</td>
-</tr>
-</table>
+| Version | Features |
+|:--------|:---------|
+| **v1.6** | SSH config checks, User/Group audit, Export (JSON/HTML/CSV/XML) |
+| **v2.0** | Deep scan, CVE lookups, and much more
 
 <br>
 
@@ -355,8 +273,7 @@ CVE lookups & system fingerprinting and much more
 
 <div align="center">
 
-## 📜 License
-
+  ## 📜 License
 This project is licensed under the **GNU General Public License v3.0 (GPL‑3.0)**.
 See the [LICENSE](LICENSE) file for details.
 
@@ -376,6 +293,4 @@ See the [LICENSE](LICENSE) file for details.
 
 <br>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:161b22,100:1f6feb&height=120&section=footer" width="100%"/>
-
-</div>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:161b22,100:1f6feb&height=120§ion=footer" width="100%"/>

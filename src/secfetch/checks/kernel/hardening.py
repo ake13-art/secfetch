@@ -39,31 +39,32 @@ def _sysctl_check(path, mapping):
     return {"status": "info", "value": "Unknown"}
 
 
+# STANDARDIZATION FIX: Changed from snake_case to Title Case for consistency
 # Kernel pointer hiding level (0/1/2)
-@security_check(name="kptr_restrict", category="kernel_hardening", risk="medium")
+@security_check(name="Kptr Restrict", category="kernel_hardening", risk="medium")
 def check_kptr():
     return _sysctl_check("/proc/sys/kernel/kptr_restrict", _KPTR)
 
 
 # Restrict dmesg access to root
-@security_check(name="dmesg_restrict", category="kernel_hardening", risk="medium")
+@security_check(name="Dmesg Restrict", category="kernel_hardening", risk="medium")
 def check_dmesg():
     return _sysctl_check("/proc/sys/kernel/dmesg_restrict", _BOOL)
 
 
 # Yama ptrace scope (0=open, 3=blocked)
-@security_check(name="ptrace_scope", category="kernel_hardening", risk="medium")
+@security_check(name="Ptrace Scope", category="kernel_hardening", risk="medium")
 def check_ptrace():
     return _sysctl_check("/proc/sys/kernel/yama/ptrace_scope", _PTRACE)
 
 
 # Prevent loading new kernel modules at runtime
-@security_check(name="modules_disabled", category="kernel_hardening", risk="low")
+@security_check(name="Modules Disabled", category="kernel_hardening", risk="low")
 def check_modules():
     return _sysctl_check("/proc/sys/kernel/modules_disabled", _BOOL_WARN)
 
 
 # Restrict unprivileged BPF usage (0=allowed, 2=permanent)
-@security_check(name="unprivileged_bpf", category="kernel_hardening", risk="medium")
+@security_check(name="Unprivileged BPF", category="kernel_hardening", risk="medium")
 def check_bpf():
     return _sysctl_check("/proc/sys/kernel/unprivileged_bpf_disabled", _BPF)
