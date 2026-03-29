@@ -1,6 +1,6 @@
-
 <div align="center">
-  
+
+
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1117,50:161b22,100:1f6feb&height=180§ion=header&text=&fontSize=0" width="100%"/>
 
 <br>
@@ -20,7 +20,7 @@
 
 <br>
 
-![Version](https://img.shields.io/badge/version-1.5-1f6feb?style=for-the-badge&labelColor=0d1117)
+![Version](https://img.shields.io/badge/version-1.5.1-1f6feb?style=for-the-badge&labelColor=0d1117)
 ![License](https://img.shields.io/badge/license-GPL--3.0-58a6ff?style=for-the-badge&labelColor=0d1117)
 ![Python](https://img.shields.io/badge/python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=0d1117)
 ![Platform](https://img.shields.io/badge/platform-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=white&labelColor=0d1117)
@@ -39,6 +39,7 @@
 <br>
 
 <div align="center">
+
 
   ## ⚡ Quick Start
 
@@ -62,23 +63,24 @@ secfetch
 
 <div align="center">
 
+
   ## 🖥️ Commands
 
 </div>
 
 <br>
 
-| Command | What it does |
-|:---|:---|
-| `secfetch` | Full security overview |
-| `secfetch fastscan` | Only enabled checks — faster |
-| `secfetch --short` | Compact one‑box summary |
-| `secfetch live` | Live monitoring — auto refresh every 5s |
-| `secfetch live --interval <n>` | Custom refresh interval |
-| `secfetch improve` | Show issues with fix suggestions |
-| `secfetch improve --auto` | Interactive auto-fix selection |
-| `secfetch help <check>` | Detailed info, risk level & fix |
-| `secfetch -h` | Show all available options |
+| Command                        | What it does                            |
+| :----------------------------- | :-------------------------------------- |
+| `secfetch`                     | Full security overview                  |
+| `secfetch fastscan`            | Only enabled checks — faster            |
+| `secfetch --short`             | Compact one‑box summary                 |
+| `secfetch live`                | Live monitoring — auto refresh every 5s |
+| `secfetch live --interval <n>` | Custom refresh interval                 |
+| `secfetch improve`             | Show issues with fix suggestions        |
+| `secfetch improve --auto`      | Interactive auto-fix selection          |
+| `secfetch help <check>`        | Detailed info, risk level & fix         |
+| `secfetch -h`                  | Show all available options              |
 
 <br>
 
@@ -87,6 +89,7 @@ secfetch
 <br>
 
 <div align="center">
+
 
   ## 🔧 Improve Command
 
@@ -134,6 +137,7 @@ Interactive selection with toggle UI and safety warnings:
 ```
 
 **Features:**
+
 - Persistent fixes (written to `/etc/sysctl.d/99-secfetch.conf`)
 - Risky fix warnings (e.g. `modules_disabled`)
 - Service auto-disable for suspicious services (telnetd, rshd, etc.)
@@ -147,19 +151,21 @@ Interactive selection with toggle UI and safety warnings:
 
 <div align="center">
 
+
   ## 🔍 Security Checks
 
 </div>
 
 <br>
 
-| Category | Checks |
-|:---|:---|
-| **System** | Kernel, Secure Boot |
-| **Kernel Security** | ASLR, Lockdown, LSM |
+| Category             | Checks                                                       |
+| :------------------- | :----------------------------------------------------------- |
+| **System**           | Kernel, Secure Boot                                          |
+| **Kernel Security**  | ASLR, Lockdown, LSM                                          |
 | **Kernel Hardening** | kptr_restrict, dmesg_restrict, ptrace_scope, modules_disabled, unprivileged_bpf |
-| **Network** | Firewall, Firewall Rules, IPv6, Open Ports, Services, TCP SYN Cookies, Reverse Path Filter |
-| **Filesystem** | World Writable Files, SUID Binaries, /tmp noexec, /tmp Sticky Bit |
+| **Network**          | Firewall, Firewall Rules, IPv6, Open Ports, Services, TCP SYN Cookies, Reverse Path Filter |
+| **Filesystem**       | World Writable Files, SUID Binaries, /tmp noexec, /tmp Sticky Bit |
+
 Use `secfetch help <check>` for detailed information.
 
 <br>
@@ -169,6 +175,7 @@ Use `secfetch help <check>` for detailed information.
 <br>
 
 <div align="center">
+
 
   ## 📸 Example Output
 
@@ -224,6 +231,7 @@ Use `secfetch help <check>` for detailed information.
 
 <div align="center">
 
+
   ## ⚙️ Configuration
 
 </div>
@@ -233,7 +241,6 @@ Use `secfetch help <check>` for detailed information.
 Checks can be enabled/disabled in `~/.config/secfetch/checks.conf` (created on first run).
 
 ```ini
-
 [checks]
 # Fast checks (run by default)
 aslr = true
@@ -254,16 +261,17 @@ world_writable = false
 
 <div align="center">
 
+
   ## 🗺️ Roadmap
 
 </div>
 
 <br>
 
-| Version | Features |
-|:--------|:---------|
+| Version  | Features                                                     |
+| :------- | :----------------------------------------------------------- |
 | **v1.6** | SSH config checks, User/Group audit, Export (JSON/HTML/CSV/XML) |
-| **v2.0** | Deep scan, CVE lookups, and much more
+| **v2.0** | Deep scan, CVE lookups, and much more                        |
 
 <br>
 
@@ -273,7 +281,9 @@ world_writable = false
 
 <div align="center">
 
+
   ## 📜 License
+
 This project is licensed under the **GNU General Public License v3.0 (GPL‑3.0)**.
 See the [LICENSE](LICENSE) file for details.
 
