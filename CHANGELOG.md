@@ -1,3 +1,17 @@
+## [1.5.1] - 29.03.2026
+
+### Fixed
+
+- `engine.py`: Fixed syntax error in `raw.update()` call (missing parentheses for dict)
+- `ports.py`: Duplicate port check now considers protocol (TCP vs UDP)
+- `port_db.py`: Fixed protocol handling for empty protocol fields in IANA CSV
+- Firewall checks now use `sudo` for ufw, iptables, and nft commands to avoid permission denied errors when running as non-root user
+
+### Code Quality
+
+- Fixed all remaining lint errors (trailing whitespace, ambiguous variable names, import sorting)
+- Replaced ambiguous variable `l` with descriptive `line` in firewall.py and output.py
+
 ## [1.5.0] - 27.03.2026
 
 ### Added

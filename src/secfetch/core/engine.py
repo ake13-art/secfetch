@@ -3,8 +3,9 @@
 
 import importlib
 import pkgutil
+
 import secfetch.checks
-from secfetch.core.config import load_config, is_enabled
+from secfetch.core.config import is_enabled, load_config
 from secfetch.core.logger import log_error  # PROFESSIONALIZATION FIX: Added proper logging
 
 # ── Registry ──────────────────────────────────
@@ -52,9 +53,11 @@ def run_checks(fast: bool = False) -> list[dict]:
         try:
             raw = check["run"]()
             raw.update(
-                name=check["name"],
-                category=check["category"],
-                risk=check["risk"],
+                {
+                    "name": check["name"],
+                    "category": check["category"],
+                    "risk": check["risk"],
+                }
             )
             results.append(raw)
         except Exception as e:

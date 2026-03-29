@@ -1,14 +1,14 @@
-import os
 import csv
 import threading
 import urllib.request
-from datetime import datetime
 from pathlib import Path
 
 # Cache location
 CACHE_DIR = Path.home() / ".cache" / "secfetch"
 CACHE_FILE = CACHE_DIR / "port_db.csv"
-IANA_URL = "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv"
+IANA_URL = (
+    "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv"
+)
 
 # Minimal fallback DB if no cache and no network
 FALLBACK_PORTS = {
@@ -37,7 +37,7 @@ def _has_network() -> bool:
     try:
         urllib.request.urlopen(IANA_URL, timeout=2)
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -47,7 +47,7 @@ def _get_remote_last_modified() -> str | None:
         req = urllib.request.Request(IANA_URL, method="HEAD")
         with urllib.request.urlopen(req, timeout=3) as r:
             return r.headers.get("Last-Modified")
-    except:
+    except Exception:
         return None
 
 
@@ -70,7 +70,7 @@ def _download_csv():
         CACHE_FILE.write_text(data, encoding="utf-8")
         CACHE_FILE.with_suffix(".timestamp").write_text(last_modified)
         _parse_csv(data)
-    except Exception as e:
+    except Exception:
         pass  # Silent fail, fallback still active
 
 
@@ -88,7 +88,7 @@ def _parse_csv(data: str):
             continue  # skip ranges and empty
         port = int(port_str)
         if service:
-            _port_db[port] = (service, proto.upper() if proto else "TCP/UDP")
+            _port_db[port] = (service, proto.upper() if proto and proto.strip() else "TCP/UDP")
 
 
 def _check_and_update():

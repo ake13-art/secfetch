@@ -1,5 +1,6 @@
-import subprocess
 import os
+import subprocess
+
 from secfetch.core.check import security_check
 from secfetch.core.error_handling import handle_check_errors  # ERROR HANDLING FIX
 from secfetch.data import port_db
@@ -24,9 +25,7 @@ def colorize_port(port_str: str, risk: str) -> str:
 def check():
     """Check for open network ports and classify by risk level."""
     # ERROR HANDLING FIX: Removed manual exception handling - now handled by decorator
-    result = subprocess.run(
-        ["ss", "-tulnp"], capture_output=True, text=True, timeout=5
-    )
+    result = subprocess.run(["ss", "-tulnp"], capture_output=True, text=True, timeout=5)
     ports = []
     for line in result.stdout.splitlines():
         parts = line.split()
@@ -45,7 +44,8 @@ def check():
             except ValueError:
                 continue
 
-            if port_str not in [p["port"] for p in ports]:
+            key = (port_str, proto)
+            if key not in [(p["port"], p["proto"]) for p in ports]:
                 name, risk = port_db.get_port_info(port_num, proto)
                 ports.append(
                     {
@@ -80,8 +80,6 @@ def check():
             return colorize_port(p["port"], p["risk"])
         return colorize_port(f"{p['port']} ({p['name']}/{p['proto']})", p["risk"])
 
-    value = ", ".join(
-        format_port(p) for p in sorted(ports, key=lambda p: int(p["port"]))
-    )
+    value = ", ".join(format_port(p) for p in sorted(ports, key=lambda p: int(p["port"])))
 
     return {"status": overall, "value": value}

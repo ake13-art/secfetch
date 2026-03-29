@@ -1,6 +1,5 @@
-import sys
 import re
-import os
+
 from secfetch.core.scoring import calculate_score
 
 # ─────────────────────────────────────────────
@@ -97,11 +96,7 @@ def print_results(results: list[dict]) -> None:
         for r in grouped[cat]:
             icon = colorize(r["status"], ICONS.get(r["status"], "•"))
             name = r["name"].ljust(22)
-            val = (
-                r["value"]
-                if "\033[" in r["value"]
-                else colorize(r["status"], r["value"])
-            )
+            val = r["value"] if "\033[" in r["value"] else colorize(r["status"], r["value"])
             print(f"    {icon}  {name}  {val}")
         print()
 
@@ -153,11 +148,11 @@ def _short_box(results: list[dict]) -> None:
     ]
 
     print()
-    width = max(len(_strip_ansi(l)) for l in lines) + 4
+    width = max(len(_strip_ansi(line)) for line in lines) + 4
     print("  ┌" + "─" * (width - 2) + "┐")
-    for l in lines:
-        pad = width - len(_strip_ansi(l)) - 2
-        print("  │" + l + " " * pad + "│")
+    for line in lines:
+        pad = width - len(_strip_ansi(line)) - 2
+        print("  │" + line + " " * pad + "│")
     print("  └" + "─" * (width - 2) + "┘")
     print()
 

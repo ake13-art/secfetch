@@ -1,4 +1,6 @@
-import os, glob
+import glob
+import os
+
 from secfetch.core.check import security_check
 
 

@@ -1,6 +1,7 @@
-import subprocess
 import shutil
+import subprocess
 from pathlib import Path
+
 from secfetch.ui.help import CHECK_DESCRIPTIONS
 
 SYSCTL_FILE = "/etc/sysctl.d/99-secfetch.conf"
@@ -71,17 +72,17 @@ def print_improve(results: list[dict]) -> None:
         fix = info.get("fix", "No fix available.")
 
         icon = "✖" if r["status"] == "bad" else "⚠"
-        
+
         is_auto_fixable = key in AUTO_FIXES
         if key == "firewall" and not firewall_available:
             is_auto_fixable = False
             fix = "Install ufw: sudo apt install ufw && sudo ufw enable"
-        
+
         auto_tag = f"  {GREEN}[auto-fixable]{RESET}" if is_auto_fixable else ""
-        
+
         if is_auto_fixable:
             fixable_count += 1
-            
+
         print(f"  {icon}  {r['name']:<22}  Risk: {risk}{auto_tag}")
         print(f"     Fix: {fix}")
         print()
@@ -99,10 +100,10 @@ def apply_fixes(results: list[dict]) -> None:
     fixable = []
     for r in failed:
         key = r["name"].lower().replace(" ", "_")
-        
+
         if key == "firewall" and not firewall_available:
             continue
-            
+
         if key in AUTO_FIXES:
             fixable.append({
                 "name": r["name"],
@@ -113,7 +114,7 @@ def apply_fixes(results: list[dict]) -> None:
             })
 
     manual_only = [r for r in failed if r["name"].lower().replace(" ", "_") not in AUTO_FIXES]
-    
+
     if not firewall_available:
         firewall_failed = next((r for r in failed if r["name"].lower().replace(" ", "_") == "firewall"), None)
         if firewall_failed:
@@ -146,14 +147,14 @@ def apply_fixes(results: list[dict]) -> None:
         for i, f in enumerate(fixable):
             num = f"{i + 1}"
             check = f"[{GREEN}✔{RESET}]" if f["selected"] else f"[{RED}✖{RESET}]"
-            
+
             if f["key"] == "services":
                 svc_str = ", ".join(f["services"])
                 print(f"    [{num}] {check}  {f['name']:<22}  disable {svc_str}")
             else:
                 cmd_str = "  ".join(" ".join(cmd) for cmd in f["cmds"])
                 print(f"    [{num}] {check}  {f['name']:<22}  {cmd_str}")
-            
+
             if f["risky"]:
                 print(f"         {YELLOW}⚠  {RISKY_FIXES[f['key']]}{RESET}")
 
@@ -214,7 +215,7 @@ def apply_fixes(results: list[dict]) -> None:
         print("  Nothing selected. Aborted.")
         return
 
-    print(f"\n  The following commands will be executed:\n")
+    print("\n  The following commands will be executed:\n")
     for f in selected:
         if f["key"] == "services":
             for svc in f["services"]:

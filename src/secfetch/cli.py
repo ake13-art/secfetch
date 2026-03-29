@@ -1,11 +1,12 @@
 import argparse
 import threading
 import time
-from secfetch.ui.improve import print_improve, apply_fixes
+
 from secfetch.core.engine import run_checks
-from secfetch.ui.output import print_results, print_results_short, print_results_live
-from secfetch.ui.help import print_help, print_check_help
 from secfetch.data import port_db
+from secfetch.ui.help import print_check_help, print_help
+from secfetch.ui.improve import apply_fixes, print_improve
+from secfetch.ui.output import print_results, print_results_live, print_results_short
 
 
 def main():

@@ -1,4 +1,5 @@
 import platform
+
 from secfetch.core.check import security_check
 from secfetch.core.error_handling import handle_check_errors  # ERROR HANDLING FIX
 

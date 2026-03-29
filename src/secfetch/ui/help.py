@@ -1,5 +1,5 @@
-from secfetch.ui.output import LOGO_FULL
 from secfetch.core.logger import log_warning  # PROFESSIONALIZATION FIX: Added proper logging
+from secfetch.ui.output import LOGO_FULL
 
 CHECK_DESCRIPTIONS = {
     "kernel": {
@@ -228,7 +228,7 @@ def print_check_help(name: str) -> None:
     if not info:
         log_warning(f"User requested help for unknown check: '{name}'")
         print(f"\n  [!] Unknown check: '{name}'")
-        print(f"  Run 'secfetch help' to see all available checks.\n")
+        print("  Run 'secfetch help' to see all available checks.\n")
         return
 
     print()
@@ -239,13 +239,13 @@ def print_check_help(name: str) -> None:
     print()
     print(f"    {info['description']}")
     print()
-    print(f"  ✔  Good state")
+    print("  ✔  Good state")
     print(f"    {info['good']}")
     print()
-    print(f"  ✖  Bad state")
+    print("  ✖  Bad state")
     print(f"    {info['bad']}")
     print()
-    print(f"  Fix")
+    print("  Fix")
     _divider()
     print(f"    {info['fix']}")
     print()
