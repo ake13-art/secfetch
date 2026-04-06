@@ -5,6 +5,7 @@ PROFESSIONALIZATION FIX: Added proper logging instead of unprofessional print() 
 
 import logging
 import sys
+import threading
 from pathlib import Path
 
 
@@ -60,13 +61,16 @@ def setup_logger(name: str = "secfetch", level: str = "INFO") -> logging.Logger:
 
 # Global logger instance
 _logger = None
+_logger_lock = threading.Lock()
 
 
 def get_logger() -> logging.Logger:
     """Get the global secfetch logger instance."""
     global _logger
     if _logger is None:
-        _logger = setup_logger()
+        with _logger_lock:
+            if _logger is None:
+                _logger = setup_logger()
     return _logger
 
 

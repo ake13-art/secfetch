@@ -112,7 +112,9 @@ def initialize():
     if not loaded:
         # No cache: try to download immediately (first run)
         _download_csv()
-        if not _port_db:
+        with _lock:
+            db_empty = not _port_db
+        if db_empty:
             # Download failed (no network): use fallback
             with _lock:
                 for port, (name, _risk) in FALLBACK_PORTS.items():
@@ -133,6 +135,9 @@ def get_port_info(port: int, proto: str = "TCP") -> tuple[str, str]:
         if port in FALLBACK_PORTS:
             return (name, FALLBACK_PORTS[port][1])
         return (name, _classify(port))
+    # Check fallback for ports not in the downloaded DB
+    if port in FALLBACK_PORTS:
+        return FALLBACK_PORTS[port]
     # Unknown port logic
     if port < 1024:
         return ("Unknown", "suspicious")

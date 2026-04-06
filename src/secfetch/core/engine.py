@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
+import threading
 
 import secfetch.checks
 from secfetch.core.config import is_enabled, load_config
@@ -11,6 +12,7 @@ from secfetch.core.logger import log_error
 # ── Registry ──────────────────────────────────
 _checks: list[dict] = []
 _discovered = False
+_discover_lock = threading.Lock()
 
 
 def register(check: dict):
@@ -25,9 +27,10 @@ def get_checks() -> list[dict]:
 def _discover_checks():
     """Auto-import all check modules so decorators fire."""
     global _discovered
-    if _discovered:
-        return
-    _discovered = True
+    with _discover_lock:
+        if _discovered:
+            return
+        _discovered = True
 
     for mod in pkgutil.walk_packages(
         secfetch.checks.__path__,

@@ -108,7 +108,7 @@ def apply_fixes(results: list[dict]) -> None:
     manual_only = [r for r in failed if r["name"].lower().replace(" ", "_") not in AUTO_FIXES]
 
     if not firewall_available:
-        firewall_failed = next((r for r in failed if r["name"].lower().replace(" ", "_") == "firewall"), None)
+        firewall_failed = next((r for r in failed if r["name"].lower().replace(" ", "_") == "firewall_rules"), None)
         if firewall_failed:
             manual_only.append(firewall_failed)
 
