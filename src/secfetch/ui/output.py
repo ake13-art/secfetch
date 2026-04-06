@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 
 from secfetch.core.scoring import calculate_score
+from secfetch.ui.colors import GREEN, ICONS, RED, RESET, YELLOW, colorize
 
 # ─────────────────────────────────────────────
 #  Short mode layout selector
@@ -9,9 +12,6 @@ from secfetch.core.scoring import calculate_score
 # ─────────────────────────────────────────────
 SHORT_LAYOUT = "box"
 # SHORT_LAYOUT = "side"
-
-# status icons
-ICONS = {"ok": "✔", "warn": "⚠", "bad": "✖", "info": "•"}
 
 # ─────────────────────────────────────────────
 #  ASCII logo
@@ -48,21 +48,6 @@ CATEGORY_TITLES = {
     "filesystem": "Filesystem",
 }
 
-# color codes
-RED, YELLOW, GREEN, CYAN, RESET = (
-    "\033[31m",
-    "\033[33m",
-    "\033[32m",
-    "\033[36m",
-    "\033[0m",
-)
-STATUS_COLORS = {"ok": GREEN, "warn": YELLOW, "bad": RED, "info": CYAN}
-
-
-def colorize(status: str, text: str) -> str:
-    return f"{STATUS_COLORS.get(status, '')}{text}{RESET}"
-
-
 def score_bar(score: int, width: int = 15) -> str:
     filled = int((score / 100) * width)
     bar = "█" * filled + "░" * (width - filled)
@@ -72,6 +57,14 @@ def score_bar(score: int, width: int = 15) -> str:
 
 def _strip_ansi(text: str) -> str:
     return re.sub(r"\033\[[0-9;]*m", "", text)
+
+
+def _fmt(results: list[dict], name: str) -> str:
+    """Format a single check result for short output modes."""
+    r = next((x for x in results if x["name"] == name), None)
+    if r is None:
+        return "N/A"
+    return colorize(r["status"], f"{ICONS.get(r['status'], '•')} {r['value']}")
 
 
 # ─────────────────────────────────────────────
@@ -131,13 +124,8 @@ def print_results_live(results: list[dict], interval: int) -> None:
 
 def _short_box(results: list[dict]) -> None:
     score, _ = calculate_score(results)
-
-    def fmt(name) -> str:
-        r = next((x for x in results if x["name"] == name), None)
-        if r is None:
-            return "N/A"
-        return colorize(r["status"], f"{ICONS.get(r['status'], '•')} {r['value']}")
-
+    def fmt(name):
+        return _fmt(results, name)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 
     lines = [
@@ -164,13 +152,8 @@ def _short_box(results: list[dict]) -> None:
 
 def _short_side(results: list[dict]) -> None:
     score, _ = calculate_score(results)
-
-    def fmt(name) -> str:
-        r = next((x for x in results if x["name"] == name), None)
-        if r is None:
-            return "N/A"
-        return colorize(r["status"], f"{ICONS.get(r['status'], '•')} {r['value']}")
-
+    def fmt(name):
+        return _fmt(results, name)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 
     info_lines = [

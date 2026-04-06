@@ -1,7 +1,5 @@
-"""
-Standardized error handling for security checks
-ERROR HANDLING FIX: Created consistent error handling patterns across all checks
-"""
+"""Standardized error handling for security checks."""
+from __future__ import annotations
 
 import functools
 import subprocess
@@ -11,9 +9,6 @@ from typing import Any, Callable, Dict
 def handle_check_errors(func: Callable) -> Callable:
     """
     Decorator to provide consistent error handling for security checks.
-
-    PROFESSIONALIZATION FIX: Standardizes error handling across all security checks
-    to ensure consistent user experience and professional error messages.
 
     Returns consistent error responses:
     - "not available" for missing files/permissions
@@ -38,7 +33,7 @@ def handle_check_errors(func: Callable) -> Callable:
     return wrapper
 
 
-def safe_read_file(file_path: str, default: str = "not available") -> str:
+def safe_read_file(file_path: str, default: str | None = "not available") -> str | None:
     """
     Safely read a file with consistent error handling.
 
@@ -92,26 +87,3 @@ def safe_subprocess_run(
         # Return a fake result that indicates generic error
         result = subprocess.CompletedProcess(cmd, -1, default, "error")
         return result
-
-
-def standardize_status_value(value: str) -> str:
-    """
-    Standardize status values to consistent, user-friendly messages.
-
-    PROFESSIONALIZATION FIX: Ensures all error messages are consistent and professional.
-    """
-    # Common mappings for standardization
-    mappings = {
-        "Unknown": "not available",
-        "Error": "check unavailable",
-        "Failed": "check unavailable",
-        "N/A": "not available",
-        "": "not available",
-    }
-
-    # Remove "Error: " prefixes
-    if value.startswith("Error: "):
-        value = value[7:]  # Remove "Error: " prefix
-        return "check unavailable"
-
-    return mappings.get(value, value)

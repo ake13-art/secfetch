@@ -2,10 +2,9 @@ import os
 import subprocess
 
 from secfetch.core.check import security_check
-from secfetch.core.error_handling import handle_check_errors  # ERROR HANDLING FIX
+from secfetch.core.error_handling import handle_check_errors
 from secfetch.data import port_db
-
-RED, YELLOW, GREEN, RESET = "\033[31m", "\033[33m", "\033[32m", "\033[0m"
+from secfetch.ui.colors import GREEN, RED, RESET, YELLOW
 
 RISK_COLORS = {
     "expected": GREEN,
@@ -21,10 +20,9 @@ def colorize_port(port_str: str, risk: str) -> str:
 
 
 @security_check(name="Open Ports", category="network", risk="medium")
-@handle_check_errors  # ERROR HANDLING FIX: Consistent error handling
+@handle_check_errors
 def check():
     """Check for open network ports and classify by risk level."""
-    # ERROR HANDLING FIX: Removed manual exception handling - now handled by decorator
     result = subprocess.run(["ss", "-tulnp"], capture_output=True, text=True, timeout=5)
     ports = []
     for line in result.stdout.splitlines():
@@ -69,7 +67,6 @@ def check():
     }
     worst = max(ports, key=lambda p: risk_order.get(p["risk"], 0))
     overall = "warn" if risk_order.get(worst["risk"], 0) >= 2 else "info"
-    # ERROR HANDLING FIX: Use standard status values - changed "critical" to "bad"
     if worst["risk"] == "suspicious":
         overall = "bad"
 

@@ -1,12 +1,12 @@
-# core/engine.py
 """Central engine: discovers, registers and runs all checks."""
+from __future__ import annotations
 
 import importlib
 import pkgutil
 
 import secfetch.checks
 from secfetch.core.config import is_enabled, load_config
-from secfetch.core.logger import log_error  # PROFESSIONALIZATION FIX: Added proper logging
+from secfetch.core.logger import log_error
 
 # ── Registry ──────────────────────────────────
 _checks: list[dict] = []
@@ -36,7 +36,6 @@ def _discover_checks():
         try:
             importlib.import_module(mod.name)
         except Exception as e:
-            # PROFESSIONALIZATION FIX: Use proper logging instead of unprofessional print()
             log_error(f"Failed to load security check module {mod.name}: {e}")
 
 
@@ -52,6 +51,8 @@ def run_checks(fast: bool = False) -> list[dict]:
             continue
         try:
             raw = check["run"]()
+            if not isinstance(raw, dict) or "status" not in raw or "value" not in raw:
+                raw = {"status": "info", "value": "invalid check result"}
             raw.update(
                 {
                     "name": check["name"],

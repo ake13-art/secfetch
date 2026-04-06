@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 WEIGHTS = {"high": 30, "medium": 20, "low": 10, "info": 0}
 
 

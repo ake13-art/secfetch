@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import shutil
 import subprocess
 from pathlib import Path
 
+from secfetch.checks.network.services import SUSPICIOUS as SUSPICIOUS_SERVICES
+from secfetch.ui.colors import BOLD, CYAN, GREEN, RED, RESET, YELLOW
 from secfetch.ui.help import CHECK_DESCRIPTIONS
 
 SYSCTL_FILE = "/etc/sysctl.d/99-secfetch.conf"
@@ -35,16 +39,6 @@ AUTO_FIXES = {
 RISKY_FIXES = {
     "modules_disabled": "Irreversible until reboot! No new kernel modules can be loaded.",
 }
-
-from secfetch.checks.network.services import SUSPICIOUS as SUSPICIOUS_SERVICES
-
-
-RED = "\033[31m"
-GREEN = "\033[32m"
-YELLOW = "\033[33m"
-CYAN = "\033[36m"
-BOLD = "\033[1m"
-RESET = "\033[0m"
 
 
 def _divider():
