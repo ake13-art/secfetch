@@ -27,14 +27,14 @@ def _iptables_rules():
 
 
 def _nft_rules():
-    # Count nftables rules (skip comments and table/chain declarations)
+    # Count all non-empty, non-comment lines in the ruleset output
     out = subprocess.run(
         ["sudo", "nft", "list", "ruleset"], capture_output=True, text=True, timeout=5
     ).stdout
     return [
         line
         for line in out.splitlines()
-        if line.strip() and not line.startswith("#") and "rule" in line.lower()
+        if line.strip() and not line.strip().startswith("#")
     ]
 
 

@@ -11,4 +11,6 @@ def check():
         return {"status": "ok", "value": "Strict"}
     if val == "2":
         return {"status": "warn", "value": "Loose"}
-    return {"status": "bad", "value": "Disabled"}
+    if val == "0":
+        return {"status": "bad", "value": "Disabled"}
+    return {"status": "info", "value": f"Unknown value: {val}"}

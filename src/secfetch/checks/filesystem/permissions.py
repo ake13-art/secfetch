@@ -40,16 +40,24 @@ def world_writable():
 @handle_check_errors
 def suid_binaries():
     """Find SUID binaries that could be privilege escalation vectors."""
-    safe_suid = {
-        "sudo", "su", "passwd", "gpasswd", "chsh", "chfn", "newgrp",
-        "mount", "umount", "ping", "ping6", "pkexec", "fusermount",
-        "dbus-daemon-launch-helper", "polkit-agent-helper-1"
+    safe_suid_paths = {
+        "/usr/bin/sudo", "/bin/su", "/usr/bin/su",
+        "/usr/bin/passwd", "/usr/bin/gpasswd", "/usr/bin/chsh",
+        "/usr/bin/chfn", "/usr/bin/newgrp", "/usr/bin/expiry",
+        "/bin/mount", "/usr/bin/mount", "/bin/umount", "/usr/bin/umount",
+        "/bin/ping", "/usr/bin/ping", "/bin/ping6", "/usr/bin/ping6",
+        "/usr/bin/pkexec", "/usr/bin/fusermount", "/usr/bin/fusermount3",
+        "/usr/lib/dbus-1.0/dbus-daemon-launch-helper",
+        "/usr/lib/polkit-1/polkit-agent-helper-1",
     }
+    safe_suid_names = {os.path.basename(p) for p in safe_suid_paths}
 
     cmd = [
         "find", "/",
         "-type", "f",
         "-perm", "-4000",
+        "-not", "-path", "/proc/*",
+        "-not", "-path", "/sys/*",
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, stderr=subprocess.DEVNULL)
@@ -60,9 +68,8 @@ def suid_binaries():
     for line in result.stdout.splitlines():
         if line.strip():
             path = line.strip()
-            filename = os.path.basename(path)
             total += 1
-            if filename not in safe_suid:
+            if path not in safe_suid_paths and os.path.basename(path) not in safe_suid_names:
                 unexpected.append(path)
 
     unexpected_count = len(unexpected)

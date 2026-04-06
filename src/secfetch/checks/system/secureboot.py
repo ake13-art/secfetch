@@ -15,6 +15,7 @@ def check():
         return {"status": "warn", "value": "EFI var not readable"}
     with open(matches[0], "rb") as f:
         data = f.read()
+    # UEFI variable format: 4-byte EFI attributes header + 1-byte value
     if len(data) >= 5 and data[4] == 1:
         return {"status": "ok", "value": "Enabled"}
     return {"status": "bad", "value": "Disabled"}

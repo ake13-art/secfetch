@@ -1,6 +1,5 @@
 import argparse
 import threading
-import time
 
 from secfetch.core.engine import run_checks
 from secfetch.data import port_db
@@ -57,10 +56,7 @@ def main():
             while not stop_event.is_set():
                 results = run_checks(fast=False)
                 print_results_live(results, args.interval)
-                for _ in range(args.interval * 10):
-                    if stop_event.is_set():
-                        break
-                    time.sleep(0.1)
+                stop_event.wait(timeout=args.interval)
         except KeyboardInterrupt:
             pass
 

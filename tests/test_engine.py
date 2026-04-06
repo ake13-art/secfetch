@@ -9,12 +9,14 @@ class TestRegistry:
     def test_register_and_get(self):
         initial_count = len(_checks)
         check = {"name": "Test", "category": "test", "risk": "low", "run": lambda: {"status": "ok", "value": "test"}}
-        register(check)
-        checks = get_checks()
-        assert len(checks) == initial_count + 1
-        assert checks[-1]["name"] == "Test"
-        # Clean up: remove by identity, not position
-        _checks.remove(check)
+        try:
+            register(check)
+            checks = get_checks()
+            assert len(checks) == initial_count + 1
+            assert checks[-1]["name"] == "Test"
+        finally:
+            if check in _checks:
+                _checks.remove(check)
 
 
 class TestRunChecks:
