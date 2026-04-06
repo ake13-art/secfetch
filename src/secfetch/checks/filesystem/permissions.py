@@ -1,4 +1,7 @@
 """Filesystem permission security checks."""
+# Note: This module uses subprocess.run directly (not safe_subprocess_run) because
+# the find commands require stderr=DEVNULL to suppress "Permission denied" noise
+# from /proc, /sys, and other restricted paths during recursive filesystem scans.
 import os
 import stat
 import subprocess

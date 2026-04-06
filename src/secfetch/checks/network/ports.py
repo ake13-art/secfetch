@@ -1,8 +1,7 @@
 import os
-import subprocess
 
 from secfetch.core.check import security_check
-from secfetch.core.error_handling import handle_check_errors
+from secfetch.core.error_handling import handle_check_errors, safe_subprocess_run
 from secfetch.data import port_db
 from secfetch.ui.colors import GREEN, RED, RESET, YELLOW
 
@@ -23,7 +22,7 @@ def colorize_port(port_str: str, risk: str) -> str:
 @handle_check_errors
 def check():
     """Check for open network ports and classify by risk level."""
-    result = subprocess.run(["ss", "-tulnp"], capture_output=True, text=True, timeout=5)
+    result = safe_subprocess_run(["ss", "-tulnp"], timeout=5)
     if result.returncode != 0:
         return {"status": "info", "value": "scan unavailable"}
     ports = []

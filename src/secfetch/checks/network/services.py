@@ -1,8 +1,6 @@
 # checks/network/services.py
-import subprocess
-
 from secfetch.core.check import security_check
-from secfetch.core.error_handling import handle_check_errors
+from secfetch.core.error_handling import handle_check_errors, safe_subprocess_run
 
 # Services that increase attack surface or are known risks
 SUSPICIOUS = {
@@ -32,7 +30,7 @@ UNNECESSARY = {
 @handle_check_errors
 def check():
     """Find running services with systemctl and check against blacklists."""
-    result = subprocess.run(
+    result = safe_subprocess_run(
         [
             "systemctl",
             "list-units",
@@ -41,8 +39,6 @@ def check():
             "--no-pager",
             "--no-legend",
         ],
-        capture_output=True,
-        text=True,
         timeout=5,
     )
     if result.returncode != 0:

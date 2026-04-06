@@ -147,9 +147,8 @@ def get_port_info(port: int) -> tuple[str, str]:
 
 
 def _classify(port: int) -> str:
-    # Default classification for ports not in fallback
-    if port in (80, 443, 22, 25, 53, 67, 68):
-        return "expected"
+    # Default classification for ports not in FALLBACK_PORTS.
+    # Only reached for ports absent from both _port_db and FALLBACK_PORTS.
     if port < 1024:
         return "unnecessary"
     return "unknown"
