@@ -32,10 +32,9 @@ def world_writable():
             "-not", "-path", "/var/tmp/*",
             "-not", "-path", "/run/*",
             "-not", "-path", "/var/run/*",
-            "2>/dev/null"  # Suppress permission denied errors
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, stderr=subprocess.DEVNULL)
 
         # Parse output - each line is a world-writable file
         files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
@@ -75,24 +74,22 @@ def suid_binaries():
             "find", "/",
             "-type", "f",
             "-perm", "-4000",  # SUID bit set
-            "2>/dev/null"
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, stderr=subprocess.DEVNULL)
 
-        suid_files = []
+        total = 0
         unexpected = []
 
         for line in result.stdout.splitlines():
             if line.strip():
                 path = line.strip()
                 filename = os.path.basename(path)
-                suid_files.append(path)
+                total += 1
 
                 if filename not in safe_suid:
                     unexpected.append(path)
 
-        total = len(suid_files)
         unexpected_count = len(unexpected)
 
         if unexpected_count == 0:

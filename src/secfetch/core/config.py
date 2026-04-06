@@ -19,12 +19,9 @@ rp_filter = true
 
 # --- fullscan only: slow or lower priority ---
 lsm = false
-# STANDARDIZATION FIX: Updated config keys to match new Title Case check names
-kptr_restrict = false        # "Kptr Restrict" -> "kptr_restrict"
-dmesg_restrict = false       # "Dmesg Restrict" → "dmesg_restrict"
-ptrace_scope = false         # "Ptrace Scope" → "ptrace_scope"
-modules_disabled = false     # "Modules Disabled" → "modules_disabled"
-unprivileged_bpf = false     # "Unprivileged BPF" → "unprivileged_bpf"
+kptr_restrict = false
+modules_disabled = false
+unprivileged_bpf = false
 ipv6 = false
 # IMPLEMENTATION FIX: Corrected config names to match actual check names
 world_writable = false        # "World Writable" → "world_writable"

@@ -1,0 +1,2 @@
+[console_scripts]
+secfetch = secfetch.cli:main

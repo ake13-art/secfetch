@@ -36,9 +36,7 @@ RISKY_FIXES = {
     "modules_disabled": "Irreversible until reboot! No new kernel modules can be loaded.",
 }
 
-SUSPICIOUS_SERVICES = {
-    "telnetd", "rshd", "rlogind", "ftpd", "vsftpd", "proftpd", "xinetd", "inetd", "rpcbind"
-}
+from secfetch.checks.network.services import SUSPICIOUS as SUSPICIOUS_SERVICES
 
 
 RED = "\033[31m"
@@ -252,8 +250,10 @@ def apply_fixes(results: list[dict]) -> None:
 
             if f["key"] in SYSCTL_PERSISTENT and f["selected"]:
                 param, val = SYSCTL_PERSISTENT[f["key"]]
-                _write_sysctl_config(param, val)
-                print(f"    {GREEN}✓ Persisted to {SYSCTL_FILE}{RESET}")
+                if _write_sysctl_config(param, val):
+                    print(f"    {GREEN}✓ Persisted to {SYSCTL_FILE}{RESET}")
+                else:
+                    print(f"    {YELLOW}⚠ Could not persist to {SYSCTL_FILE} (permission denied){RESET}")
 
     print()
 
@@ -270,13 +270,30 @@ def _extract_suspicious_services(results: list[dict]) -> set:
     return set()
 
 
-def _write_sysctl_config(param: str, value: str) -> None:
+def _write_sysctl_config(param: str, value: str) -> bool:
     try:
-        Path(SYSCTL_FILE).parent.mkdir(parents=True, exist_ok=True)
-        with open(SYSCTL_FILE, "a") as f:
-            f.write(f"{param} = {value}\n")
+        sysctl_path = Path(SYSCTL_FILE)
+        sysctl_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Read existing content to avoid duplicates
+        existing = sysctl_path.read_text() if sysctl_path.exists() else ""
+        lines = existing.splitlines()
+
+        # Update existing param or append new one
+        updated = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith(f"{param} "):
+                lines[i] = f"{param} = {value}"
+                updated = True
+                break
+
+        if not updated:
+            lines.append(f"{param} = {value}")
+
+        sysctl_path.write_text("\n".join(lines) + "\n")
+        return True
     except PermissionError:
-        pass
+        return False
 
 
 def _apply_persistent_sysctl_config() -> None:

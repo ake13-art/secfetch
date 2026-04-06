@@ -2,6 +2,7 @@
 import subprocess
 
 from secfetch.core.check import security_check
+from secfetch.core.error_handling import handle_check_errors
 
 
 def _ufw_rules():
@@ -39,7 +40,8 @@ def _nft_rules():
 
 @security_check(
     name="Firewall Rules", category="network", risk="high"
-)  # Changed from "low" to "high" - no firewall is critical
+)
+@handle_check_errors
 def check():
     # First check if ufw is enabled (most common on Ubuntu/Debian)
     try:

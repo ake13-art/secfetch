@@ -32,15 +32,6 @@ FALLBACK_PORTS = {
 _port_db: dict[int, tuple[str, str]] = {}
 
 
-def _has_network() -> bool:
-    # Quick check via HEAD request to IANA
-    try:
-        urllib.request.urlopen(IANA_URL, timeout=2)
-        return True
-    except Exception:
-        return False
-
-
 def _get_remote_last_modified() -> str | None:
     # HTTP HEAD to check if remote CSV is newer
     try:
@@ -78,6 +69,7 @@ def _parse_csv(data: str):
     # Parse IANA CSV into _port_db
     # Columns: Service Name, Port Number, Transport Protocol, Description, ...
     global _port_db
+    new_db: dict[int, tuple[str, str]] = {}
     reader = csv.reader(data.splitlines())
     next(reader, None)  # skip header
     for row in reader:
@@ -88,7 +80,8 @@ def _parse_csv(data: str):
             continue  # skip ranges and empty
         port = int(port_str)
         if service:
-            _port_db[port] = (service, proto.upper() if proto and proto.strip() else "TCP/UDP")
+            new_db[port] = (service, proto.upper() if proto and proto.strip() else "TCP/UDP")
+    _port_db = new_db
 
 
 def _check_and_update():
@@ -113,11 +106,10 @@ def initialize():
 
     if not loaded:
         # No cache: try to download immediately (first run)
-        if _has_network():
-            _download_csv()
-        else:
-            # No cache, no network: use fallback
-            for port, (name, status) in FALLBACK_PORTS.items():
+        _download_csv()
+        if not _port_db:
+            # Download failed (no network): use fallback
+            for port, (name, _risk) in FALLBACK_PORTS.items():
                 _port_db[port] = (name, "TCP")
     else:
         # Cache exists: check for updates silently in background
@@ -137,7 +129,7 @@ def get_port_info(port: int, proto: str = "TCP") -> tuple[str, str]:
     if port < 1024:
         return ("Unknown", "suspicious")
     if port < 49152:
-        return ("Unknown", "warn")
+        return ("Unknown", "unknown")
     return ("Dynamic/Ephemeral", "info")
 
 
