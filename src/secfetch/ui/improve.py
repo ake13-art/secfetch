@@ -33,7 +33,7 @@ AUTO_FIXES = {
     "tcp_syn_cookies": [["sudo", "sysctl", "-w", "net.ipv4.tcp_syncookies=1"]],
     "reverse_path_filter": [["sudo", "sysctl", "-w", "net.ipv4.conf.all.rp_filter=1"]],
     "/tmp_sticky_bit": [["sudo", "chmod", "+t", "/tmp"]],
-    "firewall": [["sudo", "ufw", "enable"]],
+    "firewall_rules": [["sudo", "ufw", "enable"]],
 }
 
 RISKY_FIXES = {
@@ -66,7 +66,7 @@ def print_improve(results: list[dict]) -> None:
         icon = "✖" if r["status"] == "bad" else "⚠"
 
         is_auto_fixable = key in AUTO_FIXES
-        if key == "firewall" and not firewall_available:
+        if key == "firewall_rules" and not firewall_available:
             is_auto_fixable = False
             fix = "Install ufw: sudo apt install ufw && sudo ufw enable"
 
@@ -93,7 +93,7 @@ def apply_fixes(results: list[dict]) -> None:
     for r in failed:
         key = r["name"].lower().replace(" ", "_")
 
-        if key == "firewall" and not firewall_available:
+        if key == "firewall_rules" and not firewall_available:
             continue
 
         if key in AUTO_FIXES:
@@ -256,11 +256,11 @@ def _extract_suspicious_services(results: list[dict]) -> set:
     for r in results:
         if r["name"].lower() == "services":
             value = r.get("value", "")
-            found = set()
-            for svc in SUSPICIOUS_SERVICES:
-                if svc in value:
-                    found.add(svc)
-            return found
+            if ":" not in value:
+                return set()
+            after_colon = value.split(":", 1)[1]
+            mentioned = {s.strip() for s in after_colon.split(",")}
+            return mentioned & SUSPICIOUS_SERVICES
     return set()
 
 
@@ -276,7 +276,8 @@ def _write_sysctl_config(param: str, value: str) -> bool:
         # Update existing param or append new one
         updated = False
         for i, line in enumerate(lines):
-            if line.strip().startswith(f"{param} "):
+            stripped = line.strip()
+            if stripped.startswith(f"{param} ") or stripped.startswith(f"{param}="):
                 lines[i] = f"{param} = {value}"
                 updated = True
                 break

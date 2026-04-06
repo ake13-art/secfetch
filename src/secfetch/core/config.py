@@ -6,16 +6,17 @@ CONFIG_PATH = Path.home() / ".config" / "secfetch" / "checks.conf"
 DEFAULT_CONFIG = """
 [checks]
 # --- fastscan: fast checks, no filesystem traversal ---
+# Keys must match: check_name.lower().replace(" ", "_")
 aslr = true
 secure_boot = true
-kernel_version = true
+kernel = true
 lockdown = true
-firewall = true
-ports = true
+firewall_rules = true
+open_ports = true
 ptrace_scope = true
 dmesg_restrict = true
-tcp_syncookies = true
-rp_filter = true
+tcp_syn_cookies = true
+reverse_path_filter = true
 
 # --- fullscan only: slow or lower priority ---
 lsm = false
@@ -23,12 +24,10 @@ kptr_restrict = false
 modules_disabled = false
 unprivileged_bpf = false
 ipv6 = false
-# IMPLEMENTATION FIX: Corrected config names to match actual check names
-world_writable = false        # "World Writable" → "world_writable"
-suid_binaries = false        # "SUID Binaries" -> "suid_binaries"
-/tmp_noexec = false          # "/tmp noexec" → "/tmp_noexec"
-/tmp_sticky_bit = false      # "/tmp Sticky Bit" → "/tmp_sticky_bit"
-firewall_rules = false
+world_writable = false
+suid_binaries = false
+/tmp_noexec = false
+/tmp_sticky_bit = false
 services = false
 """
 

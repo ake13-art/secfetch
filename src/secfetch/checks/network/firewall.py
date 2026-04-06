@@ -1,4 +1,4 @@
-# checks/network/firewall_rules.py
+# checks/network/firewall.py
 import subprocess
 
 from secfetch.core.check import security_check

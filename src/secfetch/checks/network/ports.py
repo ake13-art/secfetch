@@ -25,6 +25,7 @@ def check():
     """Check for open network ports and classify by risk level."""
     result = subprocess.run(["ss", "-tulnp"], capture_output=True, text=True, timeout=5)
     ports = []
+    seen = set()
     for line in result.stdout.splitlines():
         parts = line.split()
         if len(parts) < 5:
@@ -43,7 +44,8 @@ def check():
                 continue
 
             key = (port_str, proto)
-            if key not in [(p["port"], p["proto"]) for p in ports]:
+            if key not in seen:
+                seen.add(key)
                 name, risk = port_db.get_port_info(port_num, proto)
                 ports.append(
                     {

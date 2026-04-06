@@ -58,8 +58,10 @@ def check():
         return {"status": "info", "value": "None detected"}
 
     total = len(services)
-    flagged_sus = [s for s in services if s in SUSPICIOUS]
-    flagged_unn = [s for s in services if s in UNNECESSARY]
+    suspicious_lower = {s.lower() for s in SUSPICIOUS}
+    unnecessary_lower = {s.lower() for s in UNNECESSARY}
+    flagged_sus = [s for s in services if s.lower() in suspicious_lower]
+    flagged_unn = [s for s in services if s.lower() in unnecessary_lower]
 
     if flagged_sus:
         names = ", ".join(sorted(flagged_sus))

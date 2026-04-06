@@ -56,7 +56,7 @@ def score_bar(score: int, width: int = 15) -> str:
 
 
 def _strip_ansi(text: str) -> str:
-    return re.sub(r"\033\[[0-9;]*m", "", text)
+    return re.sub(r"\033\[[0-9;]*[A-Za-z]", "", text)
 
 
 def _fmt(results: list[dict], name: str) -> str:

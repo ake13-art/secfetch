@@ -110,23 +110,14 @@ CHECK_DESCRIPTIONS = {
         "bad": "Many open ports = larger attack surface.",
         "fix": "Review open ports with: ss -tulnp | List services: systemctl list-units --type=service --state=running | Disable unused: sudo systemctl disable --now <service>",
     },
-    "firewall": {
-        "title": "Firewall",
-        "category": "Network",
-        "risk": "High",
-        "description": "Checks whether ufw, firewalld, or iptables rules are active.",
-        "good": "Firewall active with configured rules.",
-        "bad": "No firewall found or inactive – traffic is unfiltered.",
-        "fix": "Install ufw: sudo apt install ufw && sudo ufw default deny incoming && sudo ufw enable",
-    },
     "firewall_rules": {
         "title": "Firewall Rules",
         "category": "Network",
         "risk": "High",
-        "description": "Checks active firewall rule count for ufw, nftables and iptables.",
+        "description": "Checks whether ufw, firewalld, nftables, or iptables rules are active.",
         "good": "Firewall active with configured rules.",
-        "bad": "No active firewall or no rules configured.",
-        "fix": "Enable ufw: sudo ufw enable && sudo ufw default deny incoming",
+        "bad": "No active firewall or no rules configured – traffic is unfiltered.",
+        "fix": "Install ufw: sudo apt install ufw && sudo ufw default deny incoming && sudo ufw enable",
     },
     "services": {
         "title": "Active Services",
@@ -155,7 +146,7 @@ CHECK_DESCRIPTIONS = {
         "bad": "Disabled = spoofed packets may be accepted.",
         "fix": "sysctl -w net.ipv4.conf.all.rp_filter=1",
     },
-    "world_writable_files": {
+    "world_writable": {
         "title": "World Writable Files",
         "category": "Filesystem",
         "risk": "High",

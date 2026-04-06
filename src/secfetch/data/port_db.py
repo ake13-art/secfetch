@@ -32,6 +32,7 @@ FALLBACK_PORTS = {
 
 # In-memory port DB: {port: (service_name, protocol)}
 _port_db: dict[int, tuple[str, str]] = {}
+_lock = threading.Lock()
 
 
 def _get_remote_last_modified() -> str | None:
@@ -63,8 +64,9 @@ def _download_csv():
         CACHE_FILE.write_text(data, encoding="utf-8")
         CACHE_FILE.with_suffix(".timestamp").write_text(last_modified)
         _parse_csv(data)
-    except Exception:
-        pass  # Silent fail, fallback still active
+    except Exception as e:
+        from secfetch.core.logger import log_error
+        log_error(f"Failed to download port database: {e}")
 
 
 def _parse_csv(data: str):
@@ -83,7 +85,8 @@ def _parse_csv(data: str):
         port = int(port_str)
         if service:
             new_db[port] = (service, proto.upper() if proto and proto.strip() else "TCP/UDP")
-    _port_db = new_db
+    with _lock:
+        _port_db = new_db
 
 
 def _check_and_update():
@@ -111,8 +114,9 @@ def initialize():
         _download_csv()
         if not _port_db:
             # Download failed (no network): use fallback
-            for port, (name, _risk) in FALLBACK_PORTS.items():
-                _port_db[port] = (name, "TCP")
+            with _lock:
+                for port, (name, _risk) in FALLBACK_PORTS.items():
+                    _port_db[port] = (name, "TCP")
     else:
         # Cache exists: check for updates silently in background
         threading.Thread(target=_check_and_update, daemon=True).start()
@@ -121,8 +125,10 @@ def initialize():
 def get_port_info(port: int, proto: str = "TCP") -> tuple[str, str]:
     # Returns (service_name, risk_level)
     # risk_level: expected / unnecessary / suspicious / unknown
-    if port in _port_db:
-        name, _ = _port_db[port]
+    with _lock:
+        db = _port_db
+    if port in db:
+        name, _ = db[port]
         # Check fallback for known risk levels
         if port in FALLBACK_PORTS:
             return (name, FALLBACK_PORTS[port][1])

@@ -36,6 +36,9 @@ def main():
         return
 
     if args.command == "live":
+        if args.interval < 1:
+            print("  [!] --interval must be at least 1 second.")
+            return
         stop_event = threading.Event()
 
         def wait_for_quit():
