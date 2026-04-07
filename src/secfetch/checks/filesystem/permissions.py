@@ -10,6 +10,18 @@ from pathlib import Path
 from secfetch.core.check import security_check
 from secfetch.core.error_handling import handle_check_errors
 
+_SAFE_SUID_PATHS: frozenset[str] = frozenset({
+    "/usr/bin/sudo", "/bin/su", "/usr/bin/su",
+    "/usr/bin/passwd", "/usr/bin/gpasswd", "/usr/bin/chsh",
+    "/usr/bin/chfn", "/usr/bin/newgrp", "/usr/bin/expiry",
+    "/bin/mount", "/usr/bin/mount", "/bin/umount", "/usr/bin/umount",
+    "/bin/ping", "/usr/bin/ping", "/bin/ping6", "/usr/bin/ping6",
+    "/usr/bin/pkexec", "/usr/bin/fusermount", "/usr/bin/fusermount3",
+    "/usr/lib/dbus-1.0/dbus-daemon-launch-helper",
+    "/usr/lib/polkit-1/polkit-agent-helper-1",
+})
+_SAFE_SUID_NAMES: frozenset[str] = frozenset(os.path.basename(p) for p in _SAFE_SUID_PATHS)
+
 
 @security_check(name="World Writable", category="filesystem", risk="high")
 @handle_check_errors
@@ -43,18 +55,6 @@ def world_writable() -> dict[str, str]:
 @handle_check_errors
 def suid_binaries() -> dict[str, str]:
     """Find SUID binaries that could be privilege escalation vectors."""
-    safe_suid_paths = {
-        "/usr/bin/sudo", "/bin/su", "/usr/bin/su",
-        "/usr/bin/passwd", "/usr/bin/gpasswd", "/usr/bin/chsh",
-        "/usr/bin/chfn", "/usr/bin/newgrp", "/usr/bin/expiry",
-        "/bin/mount", "/usr/bin/mount", "/bin/umount", "/usr/bin/umount",
-        "/bin/ping", "/usr/bin/ping", "/bin/ping6", "/usr/bin/ping6",
-        "/usr/bin/pkexec", "/usr/bin/fusermount", "/usr/bin/fusermount3",
-        "/usr/lib/dbus-1.0/dbus-daemon-launch-helper",
-        "/usr/lib/polkit-1/polkit-agent-helper-1",
-    }
-    safe_suid_names = {os.path.basename(p) for p in safe_suid_paths}
-
     cmd = [
         "find", "/",
         "-type", "f",
@@ -72,7 +72,7 @@ def suid_binaries() -> dict[str, str]:
         if line.strip():
             path = line.strip()
             total += 1
-            if path not in safe_suid_paths and os.path.basename(path) not in safe_suid_names:
+            if path not in _SAFE_SUID_PATHS and os.path.basename(path) not in _SAFE_SUID_NAMES:
                 unexpected.append(path)
 
     unexpected_count = len(unexpected)

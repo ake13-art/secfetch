@@ -20,6 +20,7 @@ _SCORE_BAR_WIDTH_SHORT = 15  # score bar width in short output
 _SCORE_GOOD = 75             # threshold for green score bar
 _SCORE_WARN = 40             # threshold for yellow score bar
 
+
 # ─────────────────────────────────────────────
 #  ASCII logo
 # ─────────────────────────────────────────────
@@ -131,7 +132,7 @@ def print_results_live(results: list[dict], interval: int) -> None:
 
 def _short_box(results: list[dict]) -> None:
     score, _ = calculate_score(results)
-    def fmt(name):
+    def fmt(name: str) -> str:
         return _fmt(results, name)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 
@@ -159,7 +160,7 @@ def _short_box(results: list[dict]) -> None:
 
 def _short_side(results: list[dict]) -> None:
     score, _ = calculate_score(results)
-    def fmt(name):
+    def fmt(name: str) -> str:
         return _fmt(results, name)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 

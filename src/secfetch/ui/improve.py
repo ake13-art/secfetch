@@ -42,7 +42,7 @@ RISKY_FIXES = {
 }
 
 
-def _divider():
+def _divider() -> None:
     print("  " + "─" * 56)
 
 
@@ -260,7 +260,7 @@ def apply_fixes(results: list[dict]) -> None:
     print()
 
 
-def _extract_suspicious_services(results: list[dict]) -> set:
+def _extract_suspicious_services(results: list[dict]) -> set[str]:
     for r in results:
         if r["name"].lower() == "services":
             value = r.get("value", "")

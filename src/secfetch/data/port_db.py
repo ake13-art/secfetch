@@ -53,7 +53,7 @@ def _get_local_last_modified() -> str | None:
     return None
 
 
-def _download_csv():
+def _download_csv() -> None:
     # Download fresh CSV and save to cache
     try:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -89,7 +89,7 @@ def _parse_csv(data: str) -> None:
         _port_db = new_db
 
 
-def _check_and_update():
+def _check_and_update() -> None:
     # Background thread: compare timestamps, download if outdated
     remote = _get_remote_last_modified()
     local = _get_local_last_modified()
@@ -97,7 +97,7 @@ def _check_and_update():
         _download_csv()
 
 
-def _load_cache():
+def _load_cache() -> bool:
     # Load existing cache from disk
     if CACHE_FILE.exists():
         _parse_csv(CACHE_FILE.read_text(encoding="utf-8"))
@@ -105,7 +105,7 @@ def _load_cache():
     return False
 
 
-def initialize():
+def initialize() -> None:
     # Called once at secfetch startup
     loaded = _load_cache()
 
@@ -147,8 +147,7 @@ def get_port_info(port: int) -> tuple[str, str]:
 
 
 def _classify(port: int) -> str:
-    # Default classification for ports not in FALLBACK_PORTS.
-    # Only reached for ports absent from both _port_db and FALLBACK_PORTS.
+    # Default classification for ports in the IANA DB but not in FALLBACK_PORTS.
     if port < 1024:
-        return "unnecessary"
+        return "suspicious"
     return "unknown"

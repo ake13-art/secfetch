@@ -1,7 +1,4 @@
-"""
-Professional logging system for secfetch
-PROFESSIONALIZATION FIX: Added proper logging instead of unprofessional print() statements
-"""
+"""Logging system for secfetch."""
 
 import logging
 import sys

@@ -32,15 +32,14 @@ def _discover_checks() -> None:
         if _discovered:
             return
         _discovered = True
-
-    for mod in pkgutil.walk_packages(
-        secfetch.checks.__path__,
-        secfetch.checks.__name__ + ".",
-    ):
-        try:
-            importlib.import_module(mod.name)
-        except Exception as e:
-            log_error(f"Failed to load security check module {mod.name}: {e}")
+        for mod in pkgutil.walk_packages(
+            secfetch.checks.__path__,
+            secfetch.checks.__name__ + ".",
+        ):
+            try:
+                importlib.import_module(mod.name)
+            except Exception as e:
+                log_error(f"Failed to load security check module {mod.name}: {e}")
 
 
 # ── Runner ────────────────────────────────────

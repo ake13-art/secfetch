@@ -1,4 +1,4 @@
-from secfetch.core.logger import log_warning  # PROFESSIONALIZATION FIX: Added proper logging
+from secfetch.core.logger import log_warning
 from secfetch.ui.output import LOGO_FULL
 
 CHECK_DESCRIPTIONS = {
@@ -185,7 +185,7 @@ CHECK_DESCRIPTIONS = {
 }
 
 
-def _divider():
+def _divider() -> None:
     print("  " + "─" * 40)
 
 
