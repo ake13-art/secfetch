@@ -8,6 +8,8 @@ from secfetch.core.error_handling import handle_check_errors, safe_subprocess_ru
 def _ufw_rules() -> list[str]:
     # Parse ufw numbered rules
     result = safe_subprocess_run(["sudo", "ufw", "status", "numbered"], timeout=5)
+    if result.returncode != 0:
+        return []
     return [line.strip() for line in result.stdout.splitlines() if line.strip().startswith("[")]
 
 
@@ -43,8 +45,7 @@ def check() -> dict[str, str]:
         if "Status: active" in status_line:
             rules = _ufw_rules()
             return {"status": "ok", "value": f"ufw active: {len(rules)} rules"}
-        else:
-            return {"status": "bad", "value": "ufw installed but inactive"}
+        # ufw installed but inactive – fall through to check nftables/iptables
 
     # Try other backends - check for any configured rules
     for name, fn in [

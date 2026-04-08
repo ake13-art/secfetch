@@ -101,6 +101,16 @@ class TestOpenPorts:
         assert result["status"] == "info"
         assert "443" in result["value"]
 
+    def test_unknown_port_gives_warn(self):
+        """Port classified as 'unknown' (unregistered registered port) should return warn."""
+        from secfetch.checks.network.ports import check
+        ss_out = "Netid State Recv-Q Send-Q Local Address:Port\ntcp LISTEN 0 128 0.0.0.0:9999\n"
+        with patch("secfetch.checks.network.ports.safe_subprocess_run",
+                   return_value=_ss_result(ss_out)), \
+             patch("secfetch.data.port_db.get_port_info", return_value=("Unknown", "unknown")):
+            result = check()
+        assert result["status"] == "warn"
+
     def test_udp_protocol_detected(self):
         """UDP lines should be tagged as UDP in result."""
         from secfetch.checks.network.ports import check
@@ -202,8 +212,8 @@ class TestFirewallRules:
         assert result["status"] == "ok"
         assert "ufw active" in result["value"]
 
-    def test_ufw_inactive_gives_bad(self):
-        """Inactive ufw should return bad."""
+    def test_ufw_inactive_falls_through_to_bad_when_no_other_firewall(self):
+        """Inactive ufw with no other firewall should fall through and return bad."""
         from secfetch.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
@@ -214,7 +224,22 @@ class TestFirewallRules:
         with patch("secfetch.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
             result = check()
         assert result["status"] == "bad"
-        assert "inactive" in result["value"]
+
+    def test_ufw_inactive_falls_through_to_nftables(self):
+        """Inactive ufw should fall through to nftables if it has rules."""
+        from secfetch.checks.network.firewall import check
+
+        def mock_run(cmd, **kwargs):
+            if cmd == ["sudo", "ufw", "status"]:
+                return self._make_result("Status: inactive\n", 0, cmd)
+            if cmd == ["sudo", "nft", "list", "ruleset"]:
+                return self._make_result("table inet filter { chain input { } }\n", 0, cmd)
+            return self._make_result("", -1, cmd)
+
+        with patch("secfetch.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+            result = check()
+        assert result["status"] == "ok"
+        assert "nftables" in result["value"]
 
     def test_ufw_unavailable_falls_through_to_nft(self):
         """If ufw is unavailable, should fall through to nftables."""

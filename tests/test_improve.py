@@ -50,6 +50,12 @@ class TestExtractSuspiciousServices:
         assert "telnetd" in found
         assert "rshd" in found
 
+    def test_case_insensitive_service_value_match(self):
+        """Service names in value with non-lowercase should still be matched."""
+        results = [{"name": "Services", "status": "bad", "value": "1 running, suspicious: Telnetd"}]
+        found = _extract_suspicious_services(results)
+        assert "Telnetd" in found  # original case preserved for systemctl
+
 
 # ─── _write_sysctl_config ─────────────────────────────────────────────────────
 

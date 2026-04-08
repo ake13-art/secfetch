@@ -238,7 +238,6 @@ def apply_fixes(results: list[dict]) -> None:
         return
 
     print()
-    _apply_persistent_sysctl_config()
 
     for f in selected:
         if f["key"] == "services":
@@ -257,6 +256,7 @@ def apply_fixes(results: list[dict]) -> None:
                 else:
                     print(f"    {YELLOW}⚠ Could not persist to {SYSCTL_FILE} (permission denied){RESET}")
 
+    _apply_persistent_sysctl_config()
     print()
 
 
@@ -268,7 +268,8 @@ def _extract_suspicious_services(results: list[dict]) -> set[str]:
                 return set()
             after_colon = value.split(":", 1)[1]
             mentioned = {s.strip() for s in after_colon.split(",")}
-            return mentioned & SUSPICIOUS_SERVICES
+            suspicious_lower = {s.lower() for s in SUSPICIOUS_SERVICES}
+            return {s for s in mentioned if s.lower() in suspicious_lower}
     return set()
 
 

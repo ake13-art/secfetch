@@ -63,7 +63,7 @@ def check() -> dict[str, str]:
     risk_order = {
         "suspicious": 3,
         "unnecessary": 2,
-        "unknown": 1,
+        "unknown": 2,
         "expected": 0,
         "info": 0,
     }
