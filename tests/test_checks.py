@@ -175,7 +175,7 @@ class TestHardening:
         from secfetch.checks.kernel.hardening import check_modules
         with patch("builtins.open", mock_open(read_data="0\n")):
             result = check_modules()
-        assert result["status"] == "warn"
+        assert result["status"] == "bad"
 
 
 class TestLockdown:

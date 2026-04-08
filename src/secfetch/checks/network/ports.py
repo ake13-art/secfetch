@@ -43,6 +43,8 @@ def check() -> dict[str, str]:
                 port_num = int(port_str)
             except ValueError:
                 continue
+            if not (0 <= port_num <= 65535):
+                continue
 
             key = (port_str, proto)
             if key not in seen:

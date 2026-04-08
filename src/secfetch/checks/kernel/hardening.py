@@ -53,7 +53,7 @@ def check_ptrace() -> dict[str, str]:
 @security_check(name="Modules Disabled", category="kernel_hardening", risk="high")
 @handle_check_errors
 def check_modules() -> dict[str, str]:
-    return _sysctl_check("/proc/sys/kernel/modules_disabled", _BOOL_WARN)
+    return _sysctl_check("/proc/sys/kernel/modules_disabled", _BOOL)
 
 
 @security_check(name="Unprivileged BPF", category="kernel_hardening", risk="medium")

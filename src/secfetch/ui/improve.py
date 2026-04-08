@@ -239,6 +239,8 @@ def apply_fixes(results: list[dict]) -> None:
 
     print()
 
+    sysctl_applied = False
+
     for f in selected:
         if f["key"] == "services":
             for svc in f["services"]:
@@ -252,11 +254,13 @@ def apply_fixes(results: list[dict]) -> None:
             if f["key"] in SYSCTL_PERSISTENT and f["selected"]:
                 param, val = SYSCTL_PERSISTENT[f["key"]]
                 if _write_sysctl_config(param, val):
+                    sysctl_applied = True
                     print(f"    {GREEN}✓ Persisted to {SYSCTL_FILE}{RESET}")
                 else:
                     print(f"    {YELLOW}⚠ Could not persist to {SYSCTL_FILE} (permission denied){RESET}")
 
-    _apply_persistent_sysctl_config()
+    if sysctl_applied:
+        _apply_persistent_sysctl_config()
     print()
 
 
@@ -293,6 +297,9 @@ def _write_sysctl_config(param: str, value: str) -> bool:
 
         if not updated:
             lines.append(f"{param} = {value}")
+
+        while lines and not lines[-1].strip():
+            lines.pop()
 
         sysctl_path.write_text("\n".join(lines) + "\n")
         return True
