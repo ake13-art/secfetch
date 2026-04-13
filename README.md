@@ -20,7 +20,7 @@
 
 <br>
 
-![Version](https://img.shields.io/badge/version-1.5.1-1f6feb?style=for-the-badge&labelColor=0d1117)
+![Version](https://img.shields.io/badge/version-1.5.2-1f6feb?style=for-the-badge&labelColor=0d1117)
 ![License](https://img.shields.io/badge/license-GPL--3.0-58a6ff?style=for-the-badge&labelColor=0d1117)
 ![Python](https://img.shields.io/badge/python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=0d1117)
 ![Platform](https://img.shields.io/badge/platform-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=white&labelColor=0d1117)
