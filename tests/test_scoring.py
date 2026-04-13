@@ -1,8 +1,7 @@
 """
 Tests for scoring module
 """
-import pytest
-from secfetch.core.scoring import calculate_score, WEIGHTS
+from secfetch.core.scoring import WEIGHTS, calculate_score
 
 
 class TestCalculateScore:

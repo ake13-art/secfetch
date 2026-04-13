@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+import functools
 import re
 
 from secfetch.core.scoring import calculate_score
+from secfetch.core.types import CheckResult
+from secfetch.ui.colors import CLEAR, GREEN, ICONS, RED, RESET, YELLOW, colorize
 
 # ─────────────────────────────────────────────
 #  Short mode layout selector
@@ -10,8 +15,13 @@ from secfetch.core.scoring import calculate_score
 SHORT_LAYOUT = "box"
 # SHORT_LAYOUT = "side"
 
-# status icons
-ICONS = {"ok": "✔", "warn": "⚠", "bad": "✖", "info": "•"}
+_NAME_WIDTH = 22
+_CATEGORY_WIDTH = 20
+_SCORE_BAR_WIDTH_FULL = 12  # score bar width in full/live output
+_SCORE_BAR_WIDTH_SHORT = 15  # score bar width in short output
+_SCORE_GOOD = 75  # threshold for green score bar
+_SCORE_WARN = 40  # threshold for yellow score bar
+
 
 # ─────────────────────────────────────────────
 #  ASCII logo
@@ -48,30 +58,35 @@ CATEGORY_TITLES = {
     "filesystem": "Filesystem",
 }
 
-# color codes
-RED, YELLOW, GREEN, CYAN, RESET = (
-    "\033[31m",
-    "\033[33m",
-    "\033[32m",
-    "\033[36m",
-    "\033[0m",
-)
-STATUS_COLORS = {"ok": GREEN, "warn": YELLOW, "bad": RED, "info": CYAN}
-
-
-def colorize(status: str, text: str) -> str:
-    return f"{STATUS_COLORS.get(status, '')}{text}{RESET}"
-
 
 def score_bar(score: int, width: int = 15) -> str:
     filled = int((score / 100) * width)
     bar = "█" * filled + "░" * (width - filled)
-    color = GREEN if score >= 75 else YELLOW if score >= 40 else RED
+    color = GREEN if score >= _SCORE_GOOD else YELLOW if score >= _SCORE_WARN else RED
     return f"{color}[{bar}]{RESET}"
 
 
+_ANSI_RE = re.compile(r"\033\[[0-9;]*[A-Za-z]")
+
+
+def _has_ansi(text: str) -> bool:
+    return bool(_ANSI_RE.search(text))
+
+
 def _strip_ansi(text: str) -> str:
-    return re.sub(r"\033\[[0-9;]*m", "", text)
+    return _ANSI_RE.sub("", text)
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
+
+
+def _format_check_result(results: list[CheckResult], name: str) -> str:
+    """Format a single named check result for short output modes."""
+    result = next((x for x in results if x["name"] == name), None)
+    if result is None:
+        return "N/A"
+    return colorize(result["status"], f"{ICONS.get(result['status'], '•')} {result['value']}")
 
 
 # ─────────────────────────────────────────────
@@ -79,24 +94,28 @@ def _strip_ansi(text: str) -> str:
 # ─────────────────────────────────────────────
 
 
-def print_results(results: list[dict]) -> None:
+def print_results(results: list[CheckResult]) -> None:
     score, cat_scores = calculate_score(results)
 
     print(LOGO_FULL)
 
-    grouped = {}
-    for r in results:
-        grouped.setdefault(r["category"], []).append(r)
+    grouped: dict[str, list[CheckResult]] = {}
+    for result in results:
+        grouped.setdefault(result["category"], []).append(result)
 
     for cat in CATEGORY_ORDER:
         if cat not in grouped:
             continue
         print(f"  {CATEGORY_TITLES.get(cat, cat)}")
         print("  " + "─" * 40)
-        for r in grouped[cat]:
-            icon = colorize(r["status"], ICONS.get(r["status"], "•"))
-            name = r["name"].ljust(22)
-            val = r["value"] if "\033[" in r["value"] else colorize(r["status"], r["value"])
+        for result in grouped[cat]:
+            icon = colorize(result["status"], ICONS.get(result["status"], "•"))
+            name = result["name"].ljust(_NAME_WIDTH)
+            val = (
+                result["value"]
+                if _has_ansi(result["value"])
+                else colorize(result["status"], result["value"])
+            )
             print(f"    {icon}  {name}  {val}")
         print()
 
@@ -105,11 +124,13 @@ def print_results(results: list[dict]) -> None:
     for cat in CATEGORY_ORDER:
         if cat not in cat_scores:
             continue
-        title = CATEGORY_TITLES.get(cat, cat).ljust(20)
+        title = CATEGORY_TITLES.get(cat, cat).ljust(_CATEGORY_WIDTH)
         s = cat_scores[cat]
-        print(f"    {title}  {score_bar(s, width=12)}  {s}/100")
+        print(f"    {title}  {score_bar(s, width=_SCORE_BAR_WIDTH_FULL)}  {s}/100")
     print("  " + "─" * 40)
-    print(f"    {'Total'.ljust(20)}  {score_bar(score, width=12)}  {score}/100")
+    print(
+        f"    {'Total'.ljust(_CATEGORY_WIDTH)}  {score_bar(score, width=_SCORE_BAR_WIDTH_FULL)}  {score}/100"
+    )
     print()
 
 
@@ -118,8 +139,8 @@ def print_results(results: list[dict]) -> None:
 # ─────────────────────────────────────────────
 
 
-def print_results_live(results: list[dict], interval: int) -> None:
-    print("\033[2J\033[H", end="", flush=True)
+def print_results_live(results: list[CheckResult], interval: int) -> None:
+    print(CLEAR, end="", flush=True)
     print_results(results)
     print(f"  Refreshing every {interval}s  —  Press Q + Enter to stop")
 
@@ -129,22 +150,16 @@ def print_results_live(results: list[dict], interval: int) -> None:
 # ─────────────────────────────────────────────
 
 
-def _short_box(results: list[dict]) -> None:
+def _short_box(results: list[CheckResult]) -> None:
     score, _ = calculate_score(results)
-
-    def fmt(name) -> str:
-        r = next((x for x in results if x["name"] == name), None)
-        if r is None:
-            return "N/A"
-        return colorize(r["status"], f"{ICONS.get(r['status'], '•')} {r['value']}")
-
+    fmt = functools.partial(_format_check_result, results)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 
     lines = [
         f"  {'System':<10}Kernel: {kernel:<20}  Secure Boot: {fmt('Secure Boot')}",
         f"  {'Security':<10}ASLR: {fmt('ASLR'):<22}  Lockdown: {fmt('Lockdown')}",
-        f"  {'Network':<10}Firewall: {fmt('Firewall'):<18}  Ports: {fmt('Open Ports')}",
-        f"  {'Score':<10}{score_bar(score, width=15)}  {score}/100",
+        f"  {'Network':<10}Firewall: {fmt('Firewall Rules'):<18}  Ports: {fmt('Open Ports')}",
+        f"  {'Score':<10}{score_bar(score, width=_SCORE_BAR_WIDTH_SHORT)}  {score}/100",
     ]
 
     print()
@@ -162,15 +177,9 @@ def _short_box(results: list[dict]) -> None:
 # ─────────────────────────────────────────────
 
 
-def _short_side(results: list[dict]) -> None:
+def _short_side(results: list[CheckResult]) -> None:
     score, _ = calculate_score(results)
-
-    def fmt(name) -> str:
-        r = next((x for x in results if x["name"] == name), None)
-        if r is None:
-            return "N/A"
-        return colorize(r["status"], f"{ICONS.get(r['status'], '•')} {r['value']}")
-
+    fmt = functools.partial(_format_check_result, results)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 
     info_lines = [
@@ -178,9 +187,9 @@ def _short_side(results: list[dict]) -> None:
         f"  Secure Boot  {fmt('Secure Boot')}",
         f"  ASLR         {fmt('ASLR')}",
         f"  Lockdown     {fmt('Lockdown')}",
-        f"  Firewall     {fmt('Firewall')}",
+        f"  Firewall     {fmt('Firewall Rules')}",
         f"  Ports        {fmt('Open Ports')}",
-        f"  Score        {score_bar(score, width=12)}  {score}/100",
+        f"  Score        {score_bar(score, width=_SCORE_BAR_WIDTH_FULL)}  {score}/100",
     ]
 
     max_lines = max(len(LOGO_SHORT), len(info_lines))
@@ -196,7 +205,7 @@ def _short_side(results: list[dict]) -> None:
 # ─────────────────────────────────────────────
 
 
-def print_results_short(results: list[dict]) -> None:
+def print_results_short(results: list[CheckResult]) -> None:
     if SHORT_LAYOUT == "side":
         _short_side(results)
     else:

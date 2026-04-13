@@ -1,16 +1,14 @@
+from __future__ import annotations
+
 from secfetch.core.check import security_check
-from secfetch.core.error_handling import handle_check_errors
+from secfetch.core.error_handling import safe_read_file
 
 
 @security_check(name="IPv6", category="network", risk="low")
-@handle_check_errors
-def check():
-    try:
-        # read global ipv6 disable flag
-        with open("/proc/sys/net/ipv6/conf/all/disable_ipv6") as f:
-            val = f.read().strip()
-        if val == "1":
-            return {"status": "ok", "value": "Disabled"}
-        return {"status": "info", "value": "Enabled"}
-    except OSError:
-        return {"status": "info", "value": "Unknown"}
+def check() -> dict[str, str]:
+    val = safe_read_file("/proc/sys/net/ipv6/conf/all/disable_ipv6", default=None)
+    if val is None:
+        return {"status": "info", "value": "not available"}
+    if val == "1":
+        return {"status": "ok", "value": "Disabled"}
+    return {"status": "info", "value": "Enabled"}

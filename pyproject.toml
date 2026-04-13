@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secfetch"
-version = "1.5"
+version = "1.5.1"
 description = "Lightweight Linux security inspection tool"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -18,7 +18,7 @@ keywords = ["linux", "security", "hardening", "audit"]
 
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: GPL-3.0 License",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Operating System :: POSIX :: Linux",
   "Environment :: Console"
 ]
@@ -35,8 +35,9 @@ where = ["src"]
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
-    "ruff>=0.1.0",
+    "ruff>=0.3.0",
 ]
 
 [tool.pytest.ini_options]

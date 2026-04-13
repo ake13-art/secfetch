@@ -1,8 +1,6 @@
 # checks/network/services.py
-import subprocess
-
 from secfetch.core.check import security_check
-from secfetch.core.error_handling import handle_check_errors  # ERROR HANDLING FIX
+from secfetch.core.error_handling import handle_check_errors, safe_subprocess_run
 
 # Services that increase attack surface or are known risks
 SUSPICIOUS = {
@@ -27,13 +25,15 @@ UNNECESSARY = {
     "avahi-daemon",
 }
 
+_SUSPICIOUS_LOWER: frozenset[str] = frozenset(s.lower() for s in SUSPICIOUS)
+_UNNECESSARY_LOWER: frozenset[str] = frozenset(s.lower() for s in UNNECESSARY)
+
 
 @security_check(name="Services", category="network", risk="medium")
-@handle_check_errors  # ERROR HANDLING FIX: Consistent error handling
-def check():
+@handle_check_errors
+def check() -> dict[str, str]:
     """Find running services with systemctl and check against blacklists."""
-    # ERROR HANDLING FIX: Removed manual exception handling - now handled by decorator
-    out = subprocess.run(
+    result = safe_subprocess_run(
         [
             "systemctl",
             "list-units",
@@ -42,12 +42,13 @@ def check():
             "--no-pager",
             "--no-legend",
         ],
-        capture_output=True,
-        text=True,
         timeout=5,
-    ).stdout
+    )
+    if result.returncode != 0:
+        return {"status": "info", "value": "check unavailable"}
 
     services = []
+    out = result.stdout
     for line in out.splitlines():
         parts = line.split()
         if parts:
@@ -58,8 +59,8 @@ def check():
         return {"status": "info", "value": "None detected"}
 
     total = len(services)
-    flagged_sus = [s for s in services if s in SUSPICIOUS]
-    flagged_unn = [s for s in services if s in UNNECESSARY]
+    flagged_sus = [s for s in services if s.lower() in _SUSPICIOUS_LOWER]
+    flagged_unn = [s for s in services if s.lower() in _UNNECESSARY_LOWER]
 
     if flagged_sus:
         names = ", ".join(sorted(flagged_sus))

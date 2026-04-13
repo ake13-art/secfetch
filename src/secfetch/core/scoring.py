@@ -1,24 +1,36 @@
-WEIGHTS = {"high": 30, "medium": 20, "low": 10, "info": 0}
+from __future__ import annotations
+
+from secfetch.core.types import CategoryAccumulator, CheckResult
+
+WEIGHTS: dict[str, int] = {"high": 30, "medium": 20, "low": 10, "info": 0}
 
 
-def calculate_score(results: list[dict]) -> tuple[int, dict]:
-    # Calculate overall + per-category security score
-    total, earned, cats = 0, 0, {}
+def calculate_score(results: list[CheckResult]) -> tuple[int, dict[str, int]]:
+    """Calculate overall and per-category security scores.
 
-    for r in results:
-        w = WEIGHTS.get(r["risk"], 0)
-        total += w
-        # ok = full points, warn = half, bad/info = none
-        pts = w if r["status"] == "ok" else w // 2 if r["status"] == "warn" else 0
-        earned += pts
+    Scoring: ok = full points, warn = half points, bad/info = no points.
+    """
+    total = 0
+    earned = 0
+    categories: dict[str, CategoryAccumulator] = {}
 
-        cat = cats.setdefault(r["category"], {"earned": 0, "total": 0})
-        cat["total"] += w
-        cat["earned"] += pts
+    for result in results:
+        weight = WEIGHTS.get(result["risk"], 0)
+        total += weight
+        if result["status"] == "ok":
+            points = weight
+        elif result["status"] == "warn":
+            points = weight // 2
+        else:
+            points = 0
+        earned += points
+
+        cat = categories.setdefault(result["category"], {"earned": 0, "total": 0})
+        cat["total"] += weight
+        cat["earned"] += points
 
     final = int((earned / total) * 100) if total else 0
     cat_scores = {
-        k: int((v["earned"] / v["total"]) * 100) if v["total"] else 0
-        for k, v in cats.items()
+        k: int((v["earned"] / v["total"]) * 100) if v["total"] else 0 for k, v in categories.items()
     }
     return final, cat_scores

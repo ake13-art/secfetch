@@ -1,14 +1,7 @@
+from __future__ import annotations
+
 from secfetch.core.check import security_check
-
-
-def _read(path):
-    # Safely read a sysctl value from /proc or /sys
-    try:
-        with open(path) as f:
-            return f.read().strip()
-    except OSError:
-        return None
-
+from secfetch.core.error_handling import handle_check_errors, sysctl_check
 
 # Map sysctl values to (status, display_value)
 _KPTR = {
@@ -31,40 +24,31 @@ _BPF = {
 }
 
 
-def _sysctl_check(path, mapping):
-    # Generic sysctl check: read value, look up in mapping
-    val = _read(path)
-    if val in mapping:
-        return {"status": mapping[val][0], "value": mapping[val][1]}
-    return {"status": "info", "value": "Unknown"}
-
-
-# STANDARDIZATION FIX: Changed from snake_case to Title Case for consistency
-# Kernel pointer hiding level (0/1/2)
 @security_check(name="Kptr Restrict", category="kernel_hardening", risk="medium")
-def check_kptr():
-    return _sysctl_check("/proc/sys/kernel/kptr_restrict", _KPTR)
+@handle_check_errors
+def check_kptr() -> dict[str, str]:
+    return sysctl_check("/proc/sys/kernel/kptr_restrict", _KPTR)
 
 
-# Restrict dmesg access to root
 @security_check(name="Dmesg Restrict", category="kernel_hardening", risk="medium")
-def check_dmesg():
-    return _sysctl_check("/proc/sys/kernel/dmesg_restrict", _BOOL)
+@handle_check_errors
+def check_dmesg() -> dict[str, str]:
+    return sysctl_check("/proc/sys/kernel/dmesg_restrict", _BOOL)
 
 
-# Yama ptrace scope (0=open, 3=blocked)
 @security_check(name="Ptrace Scope", category="kernel_hardening", risk="medium")
-def check_ptrace():
-    return _sysctl_check("/proc/sys/kernel/yama/ptrace_scope", _PTRACE)
+@handle_check_errors
+def check_ptrace() -> dict[str, str]:
+    return sysctl_check("/proc/sys/kernel/yama/ptrace_scope", _PTRACE)
 
 
-# Prevent loading new kernel modules at runtime
-@security_check(name="Modules Disabled", category="kernel_hardening", risk="low")
-def check_modules():
-    return _sysctl_check("/proc/sys/kernel/modules_disabled", _BOOL_WARN)
+@security_check(name="Modules Disabled", category="kernel_hardening", risk="high")
+@handle_check_errors
+def check_modules() -> dict[str, str]:
+    return sysctl_check("/proc/sys/kernel/modules_disabled", _BOOL)
 
 
-# Restrict unprivileged BPF usage (0=allowed, 2=permanent)
 @security_check(name="Unprivileged BPF", category="kernel_hardening", risk="medium")
-def check_bpf():
-    return _sysctl_check("/proc/sys/kernel/unprivileged_bpf_disabled", _BPF)
+@handle_check_errors
+def check_bpf() -> dict[str, str]:
+    return sysctl_check("/proc/sys/kernel/unprivileged_bpf_disabled", _BPF)

@@ -1,19 +1,18 @@
-"""
-Standardized error handling for security checks
-ERROR HANDLING FIX: Created consistent error handling patterns across all checks
-"""
+"""Standardized error handling for security checks."""
+from __future__ import annotations
 
 import functools
 import subprocess
 from typing import Any, Callable, Dict
 
+from secfetch.core.logger import log_debug
+
+SUBPROCESS_TIMEOUT: int = 5  # Default timeout in seconds for all subprocess calls
+
 
 def handle_check_errors(func: Callable) -> Callable:
     """
     Decorator to provide consistent error handling for security checks.
-
-    PROFESSIONALIZATION FIX: Standardizes error handling across all security checks
-    to ensure consistent user experience and professional error messages.
 
     Returns consistent error responses:
     - "not available" for missing files/permissions
@@ -31,14 +30,15 @@ def handle_check_errors(func: Callable) -> Callable:
             return {"status": "info", "value": "scan timeout"}
         except subprocess.CalledProcessError:
             return {"status": "info", "value": "check unavailable"}
-        except Exception:
-            # Don't expose internal exception details to users
+        except Exception as e:
+            # Don't expose internal exception details to users, but log for debugging
+            log_debug(f"Unexpected error in {func.__name__}: {type(e).__name__}: {e}")
             return {"status": "info", "value": "check unavailable"}
 
     return wrapper
 
 
-def safe_read_file(file_path: str, default: str = "not available") -> str:
+def safe_read_file(file_path: str, default: str | None = "not available") -> str | None:
     """
     Safely read a file with consistent error handling.
 
@@ -54,12 +54,12 @@ def safe_read_file(file_path: str, default: str = "not available") -> str:
             return f.read().strip()
     except (FileNotFoundError, PermissionError):
         return default
-    except Exception:
+    except (UnicodeDecodeError, OSError):
         return default
 
 
 def safe_subprocess_run(
-    cmd: list, timeout: int = 5, default: str = ""
+    cmd: list, timeout: int = SUBPROCESS_TIMEOUT, default: str = ""
 ) -> subprocess.CompletedProcess:
     """
     Safely run subprocess with consistent error handling.
@@ -88,30 +88,18 @@ def safe_subprocess_run(
         # Return a fake result that indicates command not found
         result = subprocess.CompletedProcess(cmd, -1, default, "command not found")
         return result
-    except Exception:
-        # Return a fake result that indicates generic error
-        result = subprocess.CompletedProcess(cmd, -1, default, "error")
+    except OSError as e:
+        result = subprocess.CompletedProcess(cmd, -1, default, f"error: {e}")
         return result
 
 
-def standardize_status_value(value: str) -> str:
+def sysctl_check(path: str, mapping: dict[str, tuple[str, str]]) -> dict[str, str]:
+    """Read a sysctl value from *path* and translate via *mapping* to a status/value dict.
+
+    Returns {"status": "info", "value": "not available"} if the path is unreadable
+    or the value is not present in the mapping.
     """
-    Standardize status values to consistent, user-friendly messages.
-
-    PROFESSIONALIZATION FIX: Ensures all error messages are consistent and professional.
-    """
-    # Common mappings for standardization
-    mappings = {
-        "Unknown": "not available",
-        "Error": "check unavailable",
-        "Failed": "check unavailable",
-        "N/A": "not available",
-        "": "not available",
-    }
-
-    # Remove "Error: " prefixes
-    if value.startswith("Error: "):
-        value = value[7:]  # Remove "Error: " prefix
-        return "check unavailable"
-
-    return mappings.get(value, value)
+    val = safe_read_file(path, default=None)
+    if val is not None and val in mapping:
+        return {"status": mapping[val][0], "value": mapping[val][1]}
+    return {"status": "info", "value": "not available"}

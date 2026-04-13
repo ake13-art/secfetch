@@ -1,18 +1,16 @@
+from __future__ import annotations
+
 from secfetch.core.check import security_check
-from secfetch.core.error_handling import handle_check_errors
+from secfetch.core.error_handling import handle_check_errors, sysctl_check
+
+_RP_FILTER = {
+    "1": ("ok", "Strict"),
+    "2": ("warn", "Loose"),
+    "0": ("bad", "Disabled"),
+}
 
 
 @security_check(name="Reverse Path Filter", category="network", risk="medium")
 @handle_check_errors
-def check():
-    try:
-        # rp_filter blocks packets with spoofed source addresses
-        with open("/proc/sys/net/ipv4/conf/all/rp_filter") as f:
-            val = f.read().strip()
-        if val == "1":
-            return {"status": "ok", "value": "Strict"}
-        if val == "2":
-            return {"status": "warn", "value": "Loose"}
-        return {"status": "bad", "value": "Disabled"}
-    except OSError:
-        return {"status": "info", "value": "Unknown"}
+def check() -> dict[str, str]:
+    return sysctl_check("/proc/sys/net/ipv4/conf/all/rp_filter", _RP_FILTER)
