@@ -57,16 +57,19 @@ Built on a shared audit-check framework (`secscan/core/registry.py` +
 | Cron | World-writable cron paths/files, unrestricted cron policy | ✅ done |
 | Permissions | Mode & ownership of `/etc/passwd`, `/etc/shadow`, `/etc/gshadow`, `/etc/group` | ✅ done |
 
-### Phase 2: Foundation
+### Phase 2: Foundation ✅ (v1.8.0)
 
 **Goal**: 100+ working checks.
 
-| Category | Checks Needed |
-|----------|---------------|
-| Boot | GRUB, init system, startup services |
-| Kernel | Parameters, modules, hardening |
-| Services | systemd, socket activation, timers |
-| Logging | rsyslog, syslog-ng, journald, auditd |
+| Category | Checks Needed | Status |
+|----------|---------------|--------|
+| Boot | GRUB boot-menu password protection, world-readable password hash | ✅ done |
+| Kernel | Runtime sysctl hardening: ASLR, kptr/dmesg/ptrace, suid_dumpable, BPF, SysRq, kexec, perf | ✅ done |
+| Services | Enabled legacy/cleartext systemd units (telnet, rsh, tftp, NIS, …) | ✅ done |
+| Logging | Active system logger, auditd, persistent journald storage | ✅ done |
+
+**Milestone**: all four categories run without root (read only `/proc/sys` and
+`systemctl` queries) and are included in `secscan`, `--quick` and `--full`. ✅
 
 ### Phase 3: Filesystem & Network
 
@@ -169,6 +172,7 @@ Use existing `@security_check` decorator (until v2.0 unification).
 
 | Version | Focus |
 |---------|-------|
+| v1.8.0 | secscan Phase 2: boot, kernel, services, logging |
 | v1.7.0 | secscan categories: authentication, firewall, cron, permissions |
 | v1.6.1 | Quality & consistency: dead-code removal, naming consistency, banner, +tests (75%→80%) |
 | v1.6.0 | secscan real findings (SSH/Users/Groups), unified shared check framework, packaging fix |

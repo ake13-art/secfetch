@@ -142,7 +142,7 @@ sudo secscan --full   # Complete audit (requires root)
 | Network | Firewall, Ports, Services, SYN Cookies |
 | Filesystem | SUID, World Writable, /tmp |
 
-### secscan (active checks as of v1.7.0)
+### secscan (active checks as of v1.8.0)
 
 | Category | Checks |
 |----------|--------|
@@ -153,13 +153,16 @@ sudo secscan --full   # Complete audit (requires root)
 | Firewall | Active firewall detection (firewalld/ufw/nftables/iptables) |
 | Cron | World-writable cron paths/files, unrestricted cron policy |
 | Permissions | Mode & ownership of `/etc/passwd`, `/etc/group`, `/etc/shadow`, `/etc/gshadow` |
+| Boot | GRUB boot-menu password protection, world-readable password hash |
+| Kernel | ASLR, kptr/dmesg/ptrace restrictions, suid_dumpable, BPF, SysRq, kexec, perf (`/proc/sys`) |
+| Services | Enabled legacy/cleartext systemd units (telnet, rsh, tftp, NIS, …) |
+| Logging | Active system logger, auditd, persistent journald storage |
 
 ### secscan (roadmap)
 
 | Version | Categories | Target |
 |---------|------------|--------|
-| v1.8 | Boot, Services, Logging | ~120 |
-| v2.0 | Filesystem, Permissions | ~160 |
+| v2.0 | Filesystem, extended Network | ~160 |
 | v2.4 | Compliance (CIS/NIST) | ~300+ |
 
 > secscan aims to become a Lynis-style auditor. The roadmap numbers are targets, not shipped counts.

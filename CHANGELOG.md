@@ -1,3 +1,19 @@
+## [1.8.0] - 30.06.2026
+
+### Added
+
+- **Phase 2 — four new secscan audit categories** (all run without root, using only world-readable `/proc/sys` and non-privileged `systemctl` queries; included in `secscan`, `--quick`, `--full`, and `--category <name>`):
+  - **boot** — verifies the GRUB boot menu is password-protected (`set superusers` / `password_pbkdf2`, BOOT-5122) so an attacker at the console cannot drop to a root shell via `init=/bin/bash`; flags a world-readable GRUB password hash (BOOT-5121).
+  - **kernel** — checks nine runtime sysctl hardening parameters: full ASLR (`randomize_va_space`), `kptr_restrict`, `dmesg_restrict`, `yama.ptrace_scope`, `fs.suid_dumpable`, `unprivileged_bpf_disabled`, `kernel.sysrq`, `kexec_load_disabled` and `perf_event_paranoid`. Parameters whose `/proc/sys` file is absent are skipped silently.
+  - **services** — flags enabled systemd units that expose legacy/cleartext protocols (telnet, rsh, rlogin, rexec, tftp, vsftpd, NIS/yp, talk, finger, rpcbind) via `systemctl is-enabled` (SRV-3104).
+  - **logging** — ensures a system logger is active (journald/rsyslog/syslog-ng, LOG-4001), that auditd is running (LOG-4010), and that journald persists logs across reboots (LOG-4031).
+- **+27 tests** for the new categories; project coverage remains at **100 %**.
+
+### Changed
+
+- `engine._requires_root()` no longer gates `kernel`, `booting`, `services` or `logging`. The Phase 2 checks read only world-readable sources, so they now run for normal users instead of being silently skipped. Only `files` and `attributes` remain root-gated.
+- `engine.run_quick_audit()` now includes the `boot` and `logging` categories (`kernel` and `services` were already listed).
+
 ## [1.7.0] - 08.06.2026
 
 ### Added

@@ -134,10 +134,12 @@ class AuditEngine:
     def run_quick_audit(self) -> AuditReport:
         log_info("Starting quick security audit (no root required)")
         quick_categories = [
+            "boot",
             "kernel",
             "network",
             "ports",
             "services",
+            "logging",
             "ssh",
             "users",
             "groups",
@@ -150,14 +152,12 @@ class AuditEngine:
 
     def _requires_root(self, category: str) -> bool:
         # Categories that genuinely cannot run without root (e.g. reading file
-        # contents). Permission checks use os.stat only, so they are not listed.
+        # contents). The boot/kernel/services/logging checks read only
+        # world-readable sources (/proc/sys, systemctl queries), so they run as
+        # a normal user and are deliberately not listed here.
         root_categories = [
             "files",
             "attributes",
-            "kernel",
-            "booting",
-            "services",
-            "logging",
         ]
         return category in root_categories
 
