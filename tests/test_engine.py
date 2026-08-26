@@ -1,10 +1,15 @@
 """Tests for the check engine."""
 
 import importlib
-from unittest.mock import patch
+
+import pytest
 
 import secfesc.shared.registry as engine_module
 from secfesc.shared.registry import get_checks, register, run_checks
+
+# A valid (category, risk) pair for test-only checks.
+_TEST_CATEGORY = "system"
+_TEST_RISK = "low"
 
 
 class TestRegistry:
@@ -14,8 +19,8 @@ class TestRegistry:
         initial_count = len(get_checks())
         check = {
             "name": "Test",
-            "category": "test",
-            "risk": "low",
+            "category": _TEST_CATEGORY,
+            "risk": _TEST_RISK,
             "run": lambda: {"status": "ok", "value": "test"},
         }
         try:
@@ -28,6 +33,16 @@ class TestRegistry:
             if check in all_checks:
                 engine_module._checks.remove(check)
 
+    def test_register_rejects_invalid_risk(self):
+        """An invalid risk value must raise ValueError instead of being logged later."""
+        with pytest.raises(ValueError, match="Invalid risk"):
+            register({
+                "name": "BadRisk",
+                "category": _TEST_CATEGORY,
+                "risk": "hgh",
+                "run": lambda: {"status": "ok", "value": "x"},
+            })
+
 
 class TestRunChecks:
     """Tests for run_checks."""
@@ -37,18 +52,22 @@ class TestRunChecks:
         register(check)
 
     def test_handles_broken_check(self):
-        """A check that raises should not crash the engine."""
+        """A check that raises should not crash the engine and must not leak
+        the exception text in the user-facing value."""
 
         def broken():
             raise RuntimeError("boom")
 
-        check = {"name": "Broken", "category": "test", "risk": "low", "run": broken}
+        check = {"name": "Broken", "category": _TEST_CATEGORY, "risk": _TEST_RISK, "run": broken}
         self._register_and_cleanup(check)
         try:
             results = run_checks(fast=False)
             broken_result = next(r for r in results if r["name"] == "Broken")
             assert broken_result["status"] == "info"
-            assert "Error" in broken_result["value"]
+            # Generic message; no internal exception details exposed.
+            assert broken_result["value"] == "check unavailable"
+            assert "RuntimeError" not in broken_result["value"]
+            assert "boom" not in broken_result["value"]
         finally:
             engine_module._checks.remove(check)
 
@@ -58,7 +77,7 @@ class TestRunChecks:
         def bad_return():
             return "not a dict"
 
-        check = {"name": "BadReturn", "category": "test", "risk": "low", "run": bad_return}
+        check = {"name": "BadReturn", "category": _TEST_CATEGORY, "risk": _TEST_RISK, "run": bad_return}
         self._register_and_cleanup(check)
         try:
             results = run_checks(fast=False)
@@ -74,11 +93,27 @@ class TestRunChecks:
         def incomplete():
             return {"status": "ok"}
 
-        check = {"name": "Incomplete", "category": "test", "risk": "low", "run": incomplete}
+        check = {"name": "Incomplete", "category": _TEST_CATEGORY, "risk": _TEST_RISK, "run": incomplete}
         self._register_and_cleanup(check)
         try:
             results = run_checks(fast=False)
             result = next(r for r in results if r["name"] == "Incomplete")
+            assert result["status"] == "info"
+            assert result["value"] == "invalid check result"
+        finally:
+            engine_module._checks.remove(check)
+
+    def test_validates_unknown_status(self):
+        """A status outside the four-state vocabulary should be rejected."""
+
+        def weird_status():
+            return {"status": "blue", "value": "x"}
+
+        check = {"name": "WeirdStatus", "category": _TEST_CATEGORY, "risk": _TEST_RISK, "run": weird_status}
+        self._register_and_cleanup(check)
+        try:
+            results = run_checks(fast=False)
+            result = next(r for r in results if r["name"] == "WeirdStatus")
             assert result["status"] == "info"
             assert result["value"] == "invalid check result"
         finally:
@@ -120,8 +155,8 @@ class TestRunChecks:
         def make_check(name):
             return {
                 "name": name,
-                "category": "test",
-                "risk": "low",
+                "category": _TEST_CATEGORY,
+                "risk": _TEST_RISK,
                 "run": lambda n=name: {"status": "ok", "value": n},
             }
 

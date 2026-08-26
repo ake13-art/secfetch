@@ -4,6 +4,7 @@ import select
 import sys
 import termios
 import threading
+import time
 import tty
 
 from secfesc.secfetch.data import port_db
@@ -49,7 +50,13 @@ def main():
     port_db.initialize()
 
     parser = argparse.ArgumentParser(prog="secfetch", add_help=False)
-    parser.add_argument("command", nargs="?", default="scan", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="scan",
+        choices=["scan", "fastscan", "live", "improve", "help"],
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("check", nargs="?", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--short", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--auto", action="store_true", help=argparse.SUPPRESS)
@@ -79,9 +86,11 @@ def main():
 
         try:
             while not stop_event.is_set():
+                cycle_start = time.monotonic()
                 results = run_checks(fast=False)
                 print_results_live(results, args.interval)
-                stop_event.wait(timeout=args.interval)
+                elapsed = time.monotonic() - cycle_start
+                stop_event.wait(timeout=max(0, args.interval - elapsed))
         except KeyboardInterrupt:
             pass
 

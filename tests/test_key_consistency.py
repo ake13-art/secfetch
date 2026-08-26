@@ -2,35 +2,42 @@
 import configparser
 import importlib
 import pkgutil
+import sys
+
+import pytest
 
 import secfesc.checks
 from secfesc.secfetch.ui.help import CHECK_DESCRIPTIONS
 from secfesc.secfetch.ui.improve import AUTO_FIXES
 from secfesc.shared.config import DEFAULT_CONFIG
+from secfesc.shared.registry import VALID_CATEGORIES
 
 
 def _get_check_keys():
     """Get all check keys by importing all check modules fresh and reading _checks."""
     from secfesc.shared.registry import _checks
 
-    # Ensure all check modules are imported (decorators register checks on import)
+    # Clear the registry so previously-registered test artifacts don't leak
+    # in, then reload every check module. Reload re-runs the
+    # @security_check decorators that re-add the check to the registry.
+    _checks.clear()
+
     for mod in pkgutil.walk_packages(
         secfesc.checks.__path__,
         secfesc.checks.__name__ + ".",
     ):
         try:
-            importlib.import_module(mod.name)
-        except Exception:
-            pass
+            if mod.name in sys.modules:
+                importlib.reload(sys.modules[mod.name])
+            else:
+                importlib.import_module(mod.name)
+        except (ImportError, ModuleNotFoundError, SyntaxError) as e:
+            pytest.fail(f"Failed to import check module {mod.name}: {e}")
 
-    # Collect keys, filtering out non-real categories (from test artifacts)
-    real_categories = {
-        "system", "kernel_security", "kernel_hardening", "network", "filesystem",
-    }
     return {
         c["name"].lower().replace(" ", "_")
         for c in _checks
-        if c["category"] in real_categories
+        if c["category"] in VALID_CATEGORIES
     }
 
 

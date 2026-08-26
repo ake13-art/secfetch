@@ -106,8 +106,9 @@ class TestIPv6:
 
     def test_ipv6_file_not_found_returns_info(self):
         """Missing sysctl file returns info."""
-        from secfesc.checks.network.ipv6 import check
         from unittest.mock import patch
+
+        from secfesc.checks.network.ipv6 import check
         with patch("secfesc.checks.network.ipv6.safe_read_file", return_value=None):
             result = check()
         assert result["status"] == "info"

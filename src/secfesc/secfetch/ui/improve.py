@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -158,7 +160,7 @@ def _build_fixable_list(
                     "key": key,
                     "cmds": list(AUTO_FIXES[key]),
                     "risky": key in RISKY_FIXES,
-                    "selected": key not in RISKY_FIXES,
+                    "selected": False,
                     "services": [],
                 }
             )
@@ -185,7 +187,7 @@ def _build_fixable_list(
                 "key": "services",
                 "cmds": [["sudo", "systemctl", "disable", "--now", s] for s in suspicious_services],
                 "risky": False,
-                "selected": True,
+                "selected": False,
                 "services": list(suspicious_services),
             }
         )
@@ -208,6 +210,18 @@ def apply_fixes(results: list[CheckResult]) -> None:
             print("\n  ✔  All checks passed – nothing to fix.\n")
         return
 
+    print(
+        f"\n  {YELLOW}⚠  This will run commands as root via sudo.{RESET}\n"
+    )
+    try:
+        gate = input("  Type 'yes apply' to continue, anything else to abort: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\n  Aborted.")
+        return
+    if gate.lower() != "yes apply":
+        print("  Aborted.")
+        return
+
     selected = _select_fixes(fixable, manual_only)
 
     if selected is None:
@@ -220,10 +234,10 @@ def apply_fixes(results: list[CheckResult]) -> None:
     for fix_item in selected:
         if fix_item["key"] == "services":
             for svc in fix_item["services"]:
-                print(f"    sudo systemctl disable --now {svc}")
+                print(f"    sudo systemctl disable --now {shlex.quote(svc)}")
         else:
             for cmd in fix_item["cmds"]:
-                print(f"    {' '.join(cmd)}")
+                print(f"    {shlex.join(cmd)}")
             if fix_item["risky"]:
                 print(f"    {YELLOW}⚠  {RISKY_FIXES[fix_item['key']]}{RESET}")
     print()
@@ -308,9 +322,24 @@ def _write_sysctl_config(param: str, value: str) -> bool:
         while lines and not lines[-1].strip():
             lines.pop()
 
-        sysctl_path.write_text("\n".join(lines) + "\n")
+        content = "\n".join(lines) + "\n"
+
+        # Atomic write: O_EXCL on a temp file in the same directory, then
+        # rename. Without this, a crash mid-write leaves a truncated file
+        # that sysctl -p will refuse to apply.
+        tmp_path = sysctl_path.with_suffix(".tmp")
+        try:
+            tmp_path.unlink()
+        except FileNotFoundError:
+            pass
+        fd = os.open(str(tmp_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        try:
+            os.write(fd, content.encode())
+        finally:
+            os.close(fd)
+        tmp_path.replace(sysctl_path)
         return True
-    except PermissionError:
+    except (PermissionError, OSError):
         return False
 
 
@@ -327,8 +356,24 @@ def _check_firewall_available() -> bool:
 
 def _run_command(cmd: list[str]) -> bool:
     """Run a shell command list and print success/failure. Returns True on success."""
+    # Sanitize env: drop LD_*, PYTHONPATH, PYTHONHOME so a compromised caller
+    # environment cannot be smuggled into the sudo invocation.
+    clean_env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("LD_", "PYTHONPATH", "PYTHONHOME"))
+    }
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=_CMD_TIMEOUT)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=_CMD_TIMEOUT,
+            shell=False,
+            check=False,
+            env=clean_env,
+            cwd="/",
+        )
         if result.returncode == 0:
             print(f"    {GREEN}✔ Applied{RESET}")
             return True

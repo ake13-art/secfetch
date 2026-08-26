@@ -110,7 +110,6 @@ class TestSafeSubprocessRun:
         assert "timeout" in result.stderr
 
     def test_oserror_returns_completed_process(self):
-        import subprocess
         from unittest.mock import patch
         with patch("subprocess.run", side_effect=OSError("device error")):
             result = safe_subprocess_run(["some", "cmd"])

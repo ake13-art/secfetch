@@ -126,8 +126,9 @@ class TestWaitForQuit:
     """Tests for _wait_for_quit() helper."""
 
     def test_non_tty_quit_on_q(self):
-        from secfesc.secfetch.cli import _wait_for_quit
         import threading
+
+        from secfesc.secfetch.cli import _wait_for_quit
         stop = threading.Event()
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
@@ -136,8 +137,9 @@ class TestWaitForQuit:
         assert stop.is_set()
 
     def test_non_tty_eof_exits_cleanly(self):
-        from secfesc.secfetch.cli import _wait_for_quit
         import threading
+
+        from secfesc.secfetch.cli import _wait_for_quit
         stop = threading.Event()
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
@@ -146,8 +148,9 @@ class TestWaitForQuit:
         assert not stop.is_set()
 
     def test_non_tty_ignores_non_q_input(self):
-        from secfesc.secfetch.cli import _wait_for_quit
         import threading
+
+        from secfesc.secfetch.cli import _wait_for_quit
         stop = threading.Event()
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
