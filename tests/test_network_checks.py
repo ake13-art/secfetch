@@ -228,47 +228,60 @@ class TestFirewallRules:
     def _make_result(self, stdout, returncode=0, cmd=None):
         return subprocess.CompletedProcess(cmd or [], returncode, stdout, "")
 
+    def _all_present(self):
+        """All three firewall backends visible to shutil.which."""
+        return lambda name: f"/usr/sbin/{name}" if name in {"ufw", "nft", "iptables", "firewalld"} else None
+
+    def _only(self, *names):
+        """Only the named backends are visible to shutil.which."""
+        s = set(names)
+        return lambda name: f"/usr/sbin/{name}" if name in s else None
+
     def test_ufw_active_gives_ok(self):
         """Active ufw with rules should return ok."""
         from secfesc.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
-            if cmd == ["sudo", "ufw", "status"]:
+            if cmd == ["ufw", "status"]:
                 return self._make_result("Status: active\n", 0, cmd)
-            if cmd == ["sudo", "ufw", "status", "numbered"]:
+            if cmd == ["ufw", "status", "numbered"]:
                 return self._make_result("[1] 22/tcp ALLOW IN  Anywhere\n", 0, cmd)
             return self._make_result("", -1, cmd)
 
-        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=self._only("ufw")):
             result = check()
         assert result["status"] == "ok"
         assert "ufw active" in result["value"]
 
-    def test_ufw_inactive_falls_through_to_bad_when_no_other_firewall(self):
-        """Inactive ufw with no other firewall should fall through and return bad."""
+    def test_ufw_inactive_falls_through_to_info_when_no_other_firewall(self):
+        """Inactive ufw with no other firewall binary: cannot prove
+        absence → info rather than false bad."""
         from secfesc.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
-            if cmd == ["sudo", "ufw", "status"]:
+            if cmd == ["ufw", "status"]:
                 return self._make_result("Status: inactive\n", 0, cmd)
             return self._make_result("", -1, cmd)
 
-        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=self._only("ufw")):
             result = check()
-        assert result["status"] == "bad"
+        assert result["status"] == "info"
 
     def test_ufw_inactive_falls_through_to_nftables(self):
         """Inactive ufw should fall through to nftables if it has rules."""
         from secfesc.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
-            if cmd == ["sudo", "ufw", "status"]:
+            if cmd == ["ufw", "status"]:
                 return self._make_result("Status: inactive\n", 0, cmd)
-            if cmd == ["sudo", "nft", "list", "ruleset"]:
+            if cmd == ["nft", "list", "ruleset"]:
                 return self._make_result("table inet filter { chain input { } }\n", 0, cmd)
             return self._make_result("", -1, cmd)
 
-        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=self._only("ufw", "nft")):
             result = check()
         assert result["status"] == "ok"
         assert "nftables" in result["value"]
@@ -278,13 +291,12 @@ class TestFirewallRules:
         from secfesc.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
-            if cmd == ["sudo", "ufw", "status"]:
-                return self._make_result("", -1, cmd)  # ufw not found
-            if cmd == ["sudo", "nft", "list", "ruleset"]:
+            if cmd == ["nft", "list", "ruleset"]:
                 return self._make_result("table inet filter {\n  chain input { }\n}\n", 0, cmd)
             return self._make_result("", -1, cmd)
 
-        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=self._only("nft")):
             result = check()
         assert result["status"] == "ok"
         assert "nftables" in result["value"]
@@ -294,41 +306,59 @@ class TestFirewallRules:
         from secfesc.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
-            if cmd == ["sudo", "iptables", "-L", "-n"]:
+            if cmd == ["iptables", "-L", "-n"]:
                 return self._make_result("ACCEPT all -- 0.0.0.0/0\nDROP all\n", 0, cmd)
             return self._make_result("", -1, cmd)
 
-        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=self._only("iptables")):
             result = check()
         assert result["status"] == "ok"
         assert "iptables" in result["value"]
 
-    def test_no_firewall_gives_bad(self):
-        """No working firewall backend should return bad."""
+    def test_no_firewall_gives_info(self):
+        """When no firewall binary can be probed, info (not bad)."""
         from secfesc.checks.network.firewall import check
 
         with patch(
             "secfesc.checks.network.firewall.safe_subprocess_run",
             return_value=self._make_result("", -1),
-        ):
+        ), patch("shutil.which", return_value=None):
+            result = check()
+        assert result["status"] == "info"
+        assert "unreadable" in result["value"]
+
+    def test_nftables_present_but_empty_gives_bad(self):
+        """If nft is present but ruleset is empty, we have evidence of no
+        active firewall → bad."""
+        from secfesc.checks.network.firewall import check
+
+        def mock_run(cmd, **kwargs):
+            if cmd == ["nft", "list", "ruleset"]:
+                return self._make_result("# empty ruleset\n", 0, cmd)
+            return self._make_result("", -1, cmd)
+
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=self._only("nft")):
             result = check()
         assert result["status"] == "bad"
-        assert "No active firewall" in result["value"]
+        assert "no rules" in result["value"]
 
     def test_ufw_rules_count_in_value(self):
         """Rule count should appear in the result value."""
         from secfesc.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
-            if cmd == ["sudo", "ufw", "status"]:
+            if cmd == ["ufw", "status"]:
                 return self._make_result("Status: active\n", 0, cmd)
-            if cmd == ["sudo", "ufw", "status", "numbered"]:
+            if cmd == ["ufw", "status", "numbered"]:
                 return self._make_result(
                     "[1] 22/tcp ALLOW\n[2] 80/tcp ALLOW\n[3] 443/tcp ALLOW\n", 0, cmd
                 )
             return self._make_result("", -1, cmd)
 
-        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=self._only("ufw")):
             result = check()
         assert "3" in result["value"]
 
@@ -373,13 +403,12 @@ class TestParsePortsEdgeCases:
 
     def test_port_extracted_but_not_numeric_is_skipped(self):
         """If regex matches but captured group is not numeric, skip the port."""
-        from secfesc.checks.network.ports import _parse_ports
-
         # Craft a line where _PORT_RE finds a match but the captured group is not a number.
         # _PORT_RE = r"(?:\[.*\]|[^:]+):(\d+)$" — \d+ ensures it's numeric, so
         # the ValueError branch is hit by returning non-numeric after a forced match.
-        import re
         from unittest.mock import patch
+
+        from secfesc.checks.network.ports import _parse_ports
 
         mock_re = type("M", (), {"group": lambda self, n: "abc"})()
 
@@ -395,6 +424,7 @@ class TestParsePortsEdgeCases:
     def test_short_mode_colorizes_port_only(self):
         """When SECFETCH_SHORT=1, format_port omits name/proto."""
         import os
+
         from secfesc.checks.network.ports import check
 
         ss_out = "Netid State Recv-Q Send-Q Local Address:Port\ntcp LISTEN 0 128 0.0.0.0:22\n"
@@ -415,11 +445,15 @@ class TestParsePortsEdgeCases:
         from secfesc.checks.network.firewall import check
 
         def mock_run(cmd, **kwargs):
-            if cmd == ["sudo", "ufw", "status"]:
+            if cmd == ["ufw", "status"]:
                 return _firewall_result("Status: active\n")
             return _firewall_result("", returncode=1)
 
-        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run):
+        def only_ufw(name):
+            return "/usr/sbin/ufw" if name == "ufw" else None
+
+        with patch("secfesc.checks.network.firewall.safe_subprocess_run", side_effect=mock_run), \
+             patch("shutil.which", side_effect=only_ufw):
             result = check()
         assert result["status"] == "ok"
         assert "ufw active" in result["value"]

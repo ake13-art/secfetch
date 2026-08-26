@@ -1,7 +1,6 @@
 """Tests for pure utility functions in ui/improve.py."""
 
 import subprocess
-from pathlib import Path
 from unittest.mock import patch
 
 from secfesc.secfetch.ui.improve import (
@@ -105,7 +104,8 @@ class TestWriteSysctlConfig:
         def raise_permission(*args, **kwargs):
             raise PermissionError("denied")
 
-        monkeypatch.setattr(Path, "write_text", raise_permission)
+        import os as _os
+        monkeypatch.setattr(_os, "open", raise_permission)
         result = _write_sysctl_config("kernel.kptr_restrict", "2")
         assert result is False
 
@@ -269,11 +269,18 @@ class TestBuildFixableList:
         assert risky["selected"] is False
         assert risky["risky"] is True
 
-    def test_non_risky_fix_is_selected_by_default(self):
+    def test_non_risky_fix_is_not_selected_by_default(self):
+        """Safety: no fix should be pre-selected. The user must opt in for
+        every item via the toggle."""
         fixable, _ = _build_fixable_list([self._r("ASLR")], True, set())
         item = next(f for f in fixable if f["key"] == "aslr")
-        assert item["selected"] is True
+        assert item["selected"] is False
         assert item["risky"] is False
+
+    def test_suspicious_services_not_selected_by_default(self):
+        fixable, _ = _build_fixable_list([], True, {"telnetd"})
+        svc = next(f for f in fixable if f["key"] == "services")
+        assert svc["selected"] is False
 
 
 # ─── _run_command ─────────────────────────────────────────────────────────────
@@ -381,12 +388,14 @@ class TestApplyFixes:
     def test_select_returns_none_returns_silently(self, monkeypatch):
         monkeypatch.setattr("secfesc.secfetch.ui.improve._check_firewall_available", lambda: True)
         monkeypatch.setattr("secfesc.secfetch.ui.improve._select_fixes", lambda *a: None)
-        apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
+        with patch("builtins.input", return_value="yes apply"):
+            apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
 
     def test_empty_selection_prints_nothing_selected(self, capsys, monkeypatch):
         monkeypatch.setattr("secfesc.secfetch.ui.improve._check_firewall_available", lambda: True)
         monkeypatch.setattr("secfesc.secfetch.ui.improve._select_fixes", lambda *a: [])
-        apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
+        with patch("builtins.input", return_value="yes apply"):
+            apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
         assert "Nothing selected" in capsys.readouterr().out
 
     def test_user_refuses_at_confirm(self, capsys, monkeypatch):
@@ -399,6 +408,15 @@ class TestApplyFixes:
             apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
         assert "Aborted" in capsys.readouterr().out
 
+    def test_user_refuses_at_root_gate(self, capsys, monkeypatch):
+        """Anything other than 'yes apply' at the initial root-sudo gate
+        must abort before the selection wizard even runs."""
+        monkeypatch.setattr("secfesc.secfetch.ui.improve._check_firewall_available", lambda: True)
+        with patch("builtins.input", return_value="y"):
+            apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
+        out = capsys.readouterr().out
+        assert "Aborted" in out
+
     def test_applies_commands_on_confirm(self, capsys, monkeypatch):
         monkeypatch.setattr("secfesc.secfetch.ui.improve._check_firewall_available", lambda: True)
         selected = [{"name": "ASLR", "key": "aslr",
@@ -406,7 +424,8 @@ class TestApplyFixes:
                      "risky": False, "selected": True, "services": []}]
         monkeypatch.setattr("secfesc.secfetch.ui.improve._select_fixes", lambda *a: selected)
         monkeypatch.setattr("secfesc.secfetch.ui.improve._run_command", lambda cmd: True)
-        with patch("builtins.input", return_value="y"):
+        # First input is the root-sudo gate, then the "Proceed? [y/N]".
+        with patch("builtins.input", side_effect=["yes apply", "y"]):
             apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
 
     def test_applies_services_fix(self, capsys, monkeypatch):
@@ -417,7 +436,7 @@ class TestApplyFixes:
         monkeypatch.setattr("secfesc.secfetch.ui.improve._select_fixes", lambda *a: selected)
         ran = []
         monkeypatch.setattr("secfesc.secfetch.ui.improve._run_command", lambda cmd: ran.append(cmd) or True)
-        with patch("builtins.input", return_value="y"):
+        with patch("builtins.input", side_effect=["yes apply", "y"]):
             apply_fixes([{"name": "Services", "status": "bad", "value": "x: telnetd"}])
         assert any("telnetd" in " ".join(cmd) for cmd in ran)
 
@@ -430,7 +449,7 @@ class TestApplyFixes:
         monkeypatch.setattr("secfesc.secfetch.ui.improve._run_command", lambda cmd: True)
         conf = tmp_path / "99-secfesc.conf"
         monkeypatch.setattr("secfesc.secfetch.ui.improve.SYSCTL_FILE", str(conf))
-        with patch("builtins.input", return_value="y"):
+        with patch("builtins.input", side_effect=["yes apply", "y"]):
             apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
         out = capsys.readouterr().out
         assert "Persisted" in out or "persist" in out.lower()
@@ -441,6 +460,8 @@ class TestApplyFixes:
                      "cmds": [["echo", "test"]],
                      "risky": False, "selected": True, "services": []}]
         monkeypatch.setattr("secfesc.secfetch.ui.improve._select_fixes", lambda *a: selected)
+        # First the root-sudo gate (raises), so the function aborts before
+        # the selection wizard.
         with patch("builtins.input", side_effect=KeyboardInterrupt):
             apply_fixes([{"name": "ASLR", "status": "bad", "value": "None"}])
 
@@ -451,7 +472,7 @@ class TestApplyFixes:
                      "risky": True, "selected": True, "services": []}]
         monkeypatch.setattr("secfesc.secfetch.ui.improve._select_fixes", lambda *a: selected)
         monkeypatch.setattr("secfesc.secfetch.ui.improve._run_command", lambda cmd: True)
-        with patch("builtins.input", return_value="y"):
+        with patch("builtins.input", side_effect=["yes apply", "y"]):
             apply_fixes([{"name": "Modules Disabled", "status": "bad", "value": "None"}])
         out = capsys.readouterr().out
         assert "Irreversible" in out

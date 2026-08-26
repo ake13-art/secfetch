@@ -4,6 +4,7 @@ import functools
 import os
 import re
 import socket
+from datetime import datetime
 
 from secfesc.shared.colors import BLUE, BOLD, CLEAR, GREEN, ICONS, RED, RESET, YELLOW, colorize
 from secfesc.shared.scoring import calculate_score
@@ -143,9 +144,16 @@ def _format_check_result(results: list[CheckResult], name: str) -> str:
 
 
 def print_results(results: list[CheckResult]) -> None:
-    score, cat_scores = calculate_score(results)
+    score, cat_scores, unavailable = calculate_score(results)
 
     print(LOGO_FULL)
+
+    if unavailable:
+        print(
+            f"  {YELLOW}⚠  {unavailable} check(s) could not be run on this system "
+            f"(tool missing or permission denied) — score is therefore a lower bound.{RESET}"
+        )
+        print()
 
     grouped: dict[str, list[CheckResult]] = {}
     for result in results:
@@ -190,7 +198,10 @@ def print_results(results: list[CheckResult]) -> None:
 def print_results_live(results: list[CheckResult], interval: int) -> None:
     print(CLEAR, end="", flush=True)
     print_results(results)
-    print(f"  Refreshing every {interval}s  —  Press Q + Enter to stop")
+    stamp = datetime.now().strftime("%H:%M:%S")
+    print(
+        f"  Refreshing every {interval}s  —  Data as of {stamp}  —  Press Q to stop"
+    )
 
 
 # ─────────────────────────────────────────────
@@ -199,7 +210,7 @@ def print_results_live(results: list[CheckResult], interval: int) -> None:
 
 
 def _short_box(results: list[CheckResult]) -> None:
-    score, _ = calculate_score(results)
+    score, _, _ = calculate_score(results)
     fmt = functools.partial(_format_check_result, results)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 
@@ -229,7 +240,7 @@ _LBL_W = 11       # widest label: "Secure Boot"
 
 
 def _short_side(results: list[CheckResult]) -> None:
-    score, _ = calculate_score(results)
+    score, _, _ = calculate_score(results)
     fmt = functools.partial(_format_check_result, results)
     kernel = next((r["value"] for r in results if r["name"] == "Kernel"), "?")
 

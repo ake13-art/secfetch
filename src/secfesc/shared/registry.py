@@ -5,7 +5,6 @@ Both tools consume this single framework: secfetch renders the results
 compactly, secscan renders them as a deep audit. Adding one check therefore
 serves both tools.
 """
-
 from __future__ import annotations
 
 import importlib
@@ -16,7 +15,7 @@ from typing import Callable
 
 import secfesc.checks
 from secfesc.shared.config import is_enabled, load_config
-from secfesc.shared.logger import log_error
+from secfesc.shared.logger import log_debug, log_error
 from secfesc.shared.types import CheckRegistration, CheckResult
 
 # ── Registry ──────────────────────────────────
@@ -25,9 +24,28 @@ _discovered = False
 _discover_lock = threading.Lock()
 _registry_lock = threading.Lock()
 
+VALID_RISKS = frozenset({"high", "medium", "low", "info"})
+VALID_CATEGORIES = frozenset({
+    "system",
+    "kernel_security",
+    "kernel_hardening",
+    "network",
+    "filesystem",
+})
+
 
 def register(check: CheckRegistration) -> None:
     """Add a check dict to the global registry. Called by the @security_check decorator."""
+    if check["risk"] not in VALID_RISKS:
+        raise ValueError(
+            f"Invalid risk {check['risk']!r} for {check['name']!r}; "
+            f"expected one of {sorted(VALID_RISKS)}"
+        )
+    if check["category"] not in VALID_CATEGORIES:
+        log_error(
+            f"Unknown category {check['category']!r} for {check['name']!r}; "
+            f"expected one of {sorted(VALID_CATEGORIES)}"
+        )
     with _registry_lock:
         _checks.append(check)
 
@@ -72,7 +90,7 @@ def _discover_checks() -> None:
         ):
             try:
                 importlib.import_module(mod.name)
-            except Exception as e:
+            except (ImportError, ModuleNotFoundError, SyntaxError) as e:
                 failed += 1
                 log_error(f"Failed to load security check module {mod.name}: {e}")
 
@@ -87,7 +105,15 @@ def _run_single(check: CheckRegistration) -> CheckResult:
     """Execute one check and return a fully-populated result dict."""
     try:
         raw = check["run"]()
-        if not isinstance(raw, dict) or "status" not in raw or "value" not in raw:
+        if (
+            not isinstance(raw, dict)
+            or "status" not in raw
+            or "value" not in raw
+            or not isinstance(raw["status"], str)
+            or not isinstance(raw["value"], str)
+            or raw["status"] not in {"ok", "warn", "bad", "info"}
+        ):
+            log_debug(f"Check {check['name']!r} returned an invalid result: {raw!r}")
             raw = {"status": "info", "value": "invalid check result"}
         raw.update(
             {
@@ -98,12 +124,15 @@ def _run_single(check: CheckRegistration) -> CheckResult:
         )
         return raw
     except Exception as e:
+        # Log details internally; never expose exception text to the user —
+        # it can contain absolute paths or file content snippets.
+        log_debug(f"Check {check['name']!r} raised: {type(e).__name__}: {e}")
         return {
             "name": check["name"],
             "category": check["category"],
             "risk": check["risk"],
             "status": "info",
-            "value": f"Error: {e}",
+            "value": "check unavailable",
         }
 
 
@@ -117,8 +146,11 @@ def run_checks(fast: bool = False) -> list[CheckResult]:
         if not fast or is_enabled(config, c["name"].lower().replace(" ", "_"))
     ]
 
+    if not active:
+        return []
     results: list[CheckResult | None] = [None] * len(active)
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    max_workers = min(len(active), 8)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_run_single, c): i for i, c in enumerate(active)}
         for future in as_completed(futures):
             idx = futures[future]

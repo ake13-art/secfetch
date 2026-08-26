@@ -299,6 +299,7 @@ class TestCLIFlags:
 
     def _empty_report(self):
         from datetime import datetime
+
         from secfesc.secscan.core.engine import AuditReport
         return AuditReport(hostname="h", start_time=datetime.now(), end_time=datetime.now())
 

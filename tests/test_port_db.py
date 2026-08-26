@@ -1,8 +1,7 @@
 """Tests for port database module."""
 import threading
 import urllib.request
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from secfesc.secfetch.data import port_db
 
@@ -222,19 +221,24 @@ class TestInitialize:
 
     def test_uses_fallback_when_no_cache_no_network(self, tmp_path, monkeypatch):
         monkeypatch.setattr(port_db, "CACHE_FILE", tmp_path / "port_db.csv")
+        # Stub the download so the background thread is a no-op.
         monkeypatch.setattr(port_db, "_download_csv", lambda: None)
         port_db._port_db = {}
+        # The fallback is loaded synchronously before the background download
+        # is spawned — we can read it immediately, no need to wait on the thread.
         port_db.initialize()
-        # FALLBACK_PORTS should be loaded
         assert 22 in port_db._port_db
 
     def test_spawns_background_update_when_cache_exists(self, tmp_path, monkeypatch):
         cache = tmp_path / "port_db.csv"
         cache.write_text("Service Name,Port Number,Transport Protocol\nssh,22,tcp\n")
         monkeypatch.setattr(port_db, "CACHE_FILE", cache)
+        # Throttle must NOT block — pretend we never checked before.
+        monkeypatch.setattr(port_db, "_check_throttled", lambda: False)
         called = []
         monkeypatch.setattr(port_db, "_check_and_update", lambda: called.append(1))
         port_db._port_db = {}
         port_db.initialize()
-        import time; time.sleep(0.1)  # allow daemon thread to run
+        import time
+        time.sleep(0.1)  # allow daemon thread to run
         assert called
